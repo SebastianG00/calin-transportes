@@ -1,10 +1,17 @@
 import { WhatsAppProvider } from "@tp/types";
 import { TwilioProvider } from "./twilio.js";
+import { FakeProvider } from "./fake.js";
+import { config } from "../config.js";
 
 let instance: WhatsAppProvider | null = null;
 
 export function getProvider(): WhatsAppProvider {
-  if (!instance) instance = new TwilioProvider();
+  if (!instance) {
+    instance =
+      config.WHATSAPP_PROVIDER === "fake"
+        ? new FakeProvider()
+        : new TwilioProvider();
+  }
   return instance;
 }
 

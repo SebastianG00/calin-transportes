@@ -10,6 +10,7 @@ const Env = z.object({
   TWILIO_ACCOUNT_SID: z.string().default(""),
   TWILIO_AUTH_TOKEN: z.string().default(""),
   TWILIO_WHATSAPP_FROM: z.string().default("whatsapp:+14155238886"),
+  WHATSAPP_PROVIDER: z.enum(["twilio", "fake"]).default("twilio"),
   SWEEP_INTERVAL_MS: z.coerce.number().default(60000),
   PORT: z.coerce.number().default(8080),
   // .env ships this key present-but-empty until a real deploy URL exists;
