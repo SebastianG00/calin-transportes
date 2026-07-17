@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom"
 
 import { RequireAuth } from "@/components/require-auth"
+import { Toaster } from "@/components/ui/sonner"
 import { SessionProvider } from "@/lib/auth"
 import { AppLayout } from "@/layouts/AppLayout"
 import { BoardPage } from "@/pages/BoardPage"
@@ -51,6 +52,7 @@ function App() {
   return (
     <SessionProvider>
       <RouterProvider router={router} />
+      <Toaster richColors position="top-right" />
     </SessionProvider>
   )
 }
