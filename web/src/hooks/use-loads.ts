@@ -17,6 +17,7 @@ export function useLoads(): {
   metrics: BoardMetrics
   loading: boolean
   error: string | null
+  refetch: () => Promise<void>
 } {
   const [rows, setRows] = useState<LoadRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,5 +69,6 @@ export function useLoads(): {
     metrics: computeMetrics(rows),
     loading,
     error,
+    refetch: fetchLoads,
   }
 }
