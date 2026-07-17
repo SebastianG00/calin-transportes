@@ -19,6 +19,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+
+import { useSession } from "@/lib/auth"
+import { supabase } from "@/lib/supabase"
 
 export function NavUser({
   user,
@@ -30,6 +34,15 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const navigate = useNavigate()
+  const { session } = useSession()
+  const email = session?.user.email ?? user.email
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    navigate("/login", { replace: true })
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -46,7 +59,7 @@ export function NavUser({
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
               <span className="truncate text-xs text-foreground/70">
-                {user.email}
+                {email}
               </span>
             </div>
             <EllipsisVerticalIcon className="ml-auto size-4" />
@@ -67,7 +80,7 @@ export function NavUser({
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {user.email}
+                      {email}
                     </span>
                   </div>
                 </div>
@@ -92,9 +105,8 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOutIcon
-              />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOutIcon />
               Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
