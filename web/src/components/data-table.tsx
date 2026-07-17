@@ -57,9 +57,17 @@ import {
   ChevronsRightIcon,
 } from "lucide-react"
 
-import { loads, type Load, type LoadStatus } from "@/data/loads"
+import type { BoardLoad, UiStatus } from "@/lib/loads"
 
-export const statusConfig: Record<LoadStatus, { label: string; className: string }> = {
+export const statusConfig: Record<
+  UiStatus,
+  { label: string; className: string }
+> = {
+  sin_asignar: {
+    label: "Sin asignar",
+    className:
+      "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+  },
   enviado: {
     label: "Enviado",
     className:
@@ -84,6 +92,11 @@ export const statusConfig: Record<LoadStatus, { label: string; className: string
     className:
       "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
   },
+  cancelado: {
+    label: "Cancelado",
+    className:
+      "bg-neutral-100 text-neutral-500 line-through dark:bg-neutral-500/15 dark:text-neutral-400",
+  },
 }
 
 const columnLabels: Record<string, string> = {
@@ -93,7 +106,7 @@ const columnLabels: Record<string, string> = {
   estado: "Estado",
 }
 
-const columns: ColumnDef<Load>[] = [
+const columns: ColumnDef<BoardLoad>[] = [
   {
     accessorKey: "cliente",
     header: "Cliente",
@@ -202,38 +215,41 @@ const columns: ColumnDef<Load>[] = [
   },
 ]
 
-const tabItems: { value: string; label: string; count: number }[] = [
-  { value: "todas", label: "Todas", count: loads.length },
-  {
-    value: "enviado",
-    label: "Enviado",
-    count: loads.filter((l) => l.estado === "enviado").length,
-  },
-  {
-    value: "sin_respuesta",
-    label: "Sin respuesta",
-    count: loads.filter((l) => l.estado === "sin_respuesta").length,
-  },
-  {
-    value: "confirmado",
-    label: "Confirmado",
-    count: loads.filter((l) => l.estado === "confirmado").length,
-  },
-  {
-    value: "en_ruta",
-    label: "En ruta",
-    count: loads.filter((l) => l.estado === "en_ruta").length,
-  },
-  {
-    value: "entregado",
-    label: "Entregado",
-    count: loads.filter((l) => l.estado === "entregado").length,
-  },
-]
-
-export function DataTable() {
+export function DataTable({ loads }: { loads: BoardLoad[] }) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = React.useState("todas")
+
+  const tabItems = React.useMemo(
+    () => [
+      { value: "todas", label: "Todas", count: loads.length },
+      {
+        value: "enviado",
+        label: "Enviado",
+        count: loads.filter((l) => l.estado === "enviado").length,
+      },
+      {
+        value: "sin_respuesta",
+        label: "Sin respuesta",
+        count: loads.filter((l) => l.estado === "sin_respuesta").length,
+      },
+      {
+        value: "confirmado",
+        label: "Confirmado",
+        count: loads.filter((l) => l.estado === "confirmado").length,
+      },
+      {
+        value: "en_ruta",
+        label: "En ruta",
+        count: loads.filter((l) => l.estado === "en_ruta").length,
+      },
+      {
+        value: "entregado",
+        label: "Entregado",
+        count: loads.filter((l) => l.estado === "entregado").length,
+      },
+    ],
+    [loads],
+  )
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -250,7 +266,7 @@ export function DataTable() {
       activeTab === "todas"
         ? loads
         : loads.filter((load) => load.estado === activeTab),
-    [activeTab]
+    [activeTab, loads]
   )
 
   const table = useReactTable({
