@@ -1,0 +1,18 @@
+import express from "express";
+import { requireAuth } from "./auth.js";
+import { errorHandler } from "./errorHandler.js";
+import { loadsRouter } from "./loads.routes.js";
+import { masterDataRouter } from "./masterData.routes.js";
+import { webhookRouter } from "./webhook.routes.js";
+
+export function createApp() {
+  const app = express();
+  // Twilio posts urlencoded, not JSON — this must come before express.json().
+  app.use("/webhook", express.urlencoded({ extended: false }), webhookRouter);
+  app.use(express.json());
+  app.get("/health", (_req, res) => res.json({ ok: true }));
+  app.use("/api/loads", requireAuth, loadsRouter);  // /api/loads*
+  app.use("/api", requireAuth, masterDataRouter);   // /api/drivers, /api/units
+  app.use(errorHandler);
+  return app;
+}

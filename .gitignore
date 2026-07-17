@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+.DS_Store
+coverage/
+supabase/.branches
+supabase/.temp
+*.local
+design-references/
+.superpowers/
+docs/superpowers/

@@ -1,0 +1,12 @@
+{
+  "name": "transportation-platform",
+  "private": true,
+  "workspaces": ["shared", "server", "web"],
+  "engines": { "node": ">=20", "npm": ">=10" },
+  "scripts": {
+    "build:shared": "npm run build -w shared",
+    "test": "npm run test -w server",
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w web"
+  }
+}

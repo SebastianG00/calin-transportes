@@ -1,0 +1,42 @@
+import { z } from "zod";
+
+export const CreateLoadInput = z.object({
+  client_id: z.string().uuid(),
+  cargo_description: z.string().min(1),
+  weight_kg: z.number().positive(),
+  origin: z.string().min(1),
+  destination: z.string().min(1),
+  scheduled_date: z.string().min(1),
+  price: z.number().nonnegative(),
+  currency: z.string().default("PEN"),
+  unit_id: z.string().uuid(),
+  driver_id: z.string().uuid(),
+});
+export type CreateLoadInput = z.infer<typeof CreateLoadInput>;
+
+export const ReassignInput = z.object({
+  unit_id: z.string().uuid(),
+  driver_id: z.string().uuid(),
+  reason: z.string().min(1),
+});
+export type ReassignInput = z.infer<typeof ReassignInput>;
+
+export const AdvanceInput = z.object({ to: z.enum(["en_route", "delivered"]) });
+export type AdvanceInput = z.infer<typeof AdvanceInput>;
+
+export const CancelInput = z.object({ reason: z.string().min(1) });
+export type CancelInput = z.infer<typeof CancelInput>;
+
+export const DriverInput = z.object({
+  name: z.string().min(1),
+  whatsapp_phone: z.string().regex(/^\+\d{8,15}$/, "E.164 requerido"),
+  active: z.boolean().default(true),
+});
+export type DriverInput = z.infer<typeof DriverInput>;
+
+export const UnitInput = z.object({
+  plate: z.string().min(1),
+  capacity_kg: z.number().positive().nullable().default(null),
+  active: z.boolean().default(true),
+});
+export type UnitInput = z.infer<typeof UnitInput>;
