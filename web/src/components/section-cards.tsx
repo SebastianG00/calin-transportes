@@ -1,5 +1,3 @@
-"use client"
-
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -9,20 +7,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  TruckIcon,
-  TrendingUpIcon,
-  CircleAlertIcon,
-} from "lucide-react"
+import { TruckIcon, TrendingUpIcon, CircleAlertIcon } from "lucide-react"
 
-export function SectionCards() {
+import type { BoardMetrics } from "@/lib/loads"
+
+export function SectionCards({ metrics }: { metrics: BoardMetrics }) {
   return (
     <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Cargas activas</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            8
+            {metrics.activas}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
@@ -33,7 +29,7 @@ export function SectionCards() {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            2 esperan confirmación <TruckIcon className="size-4" />
+            enviadas y en camino <TruckIcon className="size-4" />
           </div>
         </CardFooter>
       </Card>
@@ -41,18 +37,18 @@ export function SectionCards() {
         <CardHeader>
           <CardDescription>Tasa de confirmación</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            92%
+            {metrics.tasaConfirmacion}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <TrendingUpIcon />
-              +4%
+              hoy
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            confirman a tiempo <TrendingUpIcon className="size-4" />
+            de las cargas enviadas <TrendingUpIcon className="size-4" />
           </div>
         </CardFooter>
       </Card>
@@ -60,7 +56,7 @@ export function SectionCards() {
         <CardHeader>
           <CardDescription>Sin respuesta</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            1
+            {metrics.sinRespuesta}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
@@ -79,12 +75,12 @@ export function SectionCards() {
         <CardHeader>
           <CardDescription>Entregadas hoy</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            14
+            {metrics.entregadasHoy}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <TrendingUpIcon />
-              +3
+              hoy
             </Badge>
           </CardAction>
         </CardHeader>
