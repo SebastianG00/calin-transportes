@@ -13,16 +13,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { clients } from "@/data/clients"
+import { useClients } from "@/hooks/use-clients"
 
 export function ClientesPage() {
+  const { clients, loading, error } = useClients()
+
   return (
     <div className="px-4 lg:px-6">
       <Card>
         <CardHeader>
           <CardTitle>Clientes</CardTitle>
           <CardDescription>
-            La gestión de clientes llega en una fase posterior.
+            Clientes registrados. La edición llega en una fase posterior.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -36,19 +38,37 @@ export function ClientesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">
-                      {client.nombre}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {client.ruc}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {client.contacto}
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                      Cargando…
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-red-600">
+                      {error}
+                    </TableCell>
+                  </TableRow>
+                ) : clients.length ? (
+                  clients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell className="font-medium">{client.nombre}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {client.ruc}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {client.contacto}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                      Sin clientes.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
