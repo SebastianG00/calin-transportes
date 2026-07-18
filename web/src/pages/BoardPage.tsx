@@ -4,7 +4,7 @@ import { SectionCards } from "@/components/section-cards"
 import { useLoads } from "@/hooks/use-loads"
 
 export function BoardPage() {
-  const { loads, metrics, loading, error } = useLoads()
+  const { loads, metrics, loading, error, refetch } = useLoads()
 
   if (error) {
     return (
@@ -25,7 +25,7 @@ export function BoardPage() {
           Cargando cargas…
         </div>
       ) : (
-        <DataTable loads={loads} />
+        <DataTable loads={loads} onActionDone={refetch} />
       )}
     </>
   )

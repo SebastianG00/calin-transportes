@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import {
   flexRender,
   getCoreRowModel,
@@ -13,6 +13,7 @@ import {
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
+  type RowData,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
@@ -24,8 +25,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
@@ -47,17 +46,24 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  EllipsisVerticalIcon,
   Columns3Icon,
   ChevronDownIcon,
-  PlusIcon,
   ChevronsLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsRightIcon,
 } from "lucide-react"
 
+import { NuevaCargaSheet } from "@/components/nueva-carga-sheet"
+import { RowActions } from "@/components/row-actions"
 import type { BoardLoad, UiStatus } from "@/lib/loads"
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData extends RowData> {
+    onActionDone: () => void
+  }
+}
 
 export const statusConfig: Record<
   UiStatus,
@@ -183,39 +189,23 @@ const columns: ColumnDef<BoardLoad>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => (
-      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-      <div onClick={(event) => event.stopPropagation()}>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                className="flex size-8 text-muted-foreground data-open:bg-muted"
-                size="icon"
-              />
-            }
-          >
-            <EllipsisVerticalIcon />
-            <span className="sr-only">Abrir menú</span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem render={<Link to={`/cargas/${row.original.id}`} />}>
-              Ver detalle
-            </DropdownMenuItem>
-            <DropdownMenuItem>Marcar confirmado</DropdownMenuItem>
-            <DropdownMenuItem>Reenviar solicitud</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive">Eliminar</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+    cell: ({ row, table }) => (
+      <RowActions
+        load={row.original}
+        onDone={table.options.meta!.onActionDone}
+      />
     ),
     enableHiding: false,
   },
 ]
 
-export function DataTable({ loads }: { loads: BoardLoad[] }) {
+export function DataTable({
+  loads,
+  onActionDone,
+}: {
+  loads: BoardLoad[]
+  onActionDone: () => void
+}) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = React.useState("todas")
 
@@ -279,6 +269,7 @@ export function DataTable({ loads }: { loads: BoardLoad[] }) {
       pagination,
     },
     getRowId: (row) => row.id.toString(),
+    meta: { onActionDone },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -367,10 +358,7 @@ export function DataTable({ loads }: { loads: BoardLoad[] }) {
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm">
-            <PlusIcon />
-            <span className="hidden lg:inline">Nueva carga</span>
-          </Button>
+          <NuevaCargaSheet onCreated={onActionDone} />
         </div>
       </div>
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
