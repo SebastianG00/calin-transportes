@@ -51,10 +51,13 @@ export function ConductorSheet({
     e.preventDefault()
     setBusy(true)
     try {
+      // Sanitize the phone to E.164: keep a leading + and digits only
+      // (so "+51 987 654 321" or "(51) 987-654-321" become "+51987654321").
+      const cleanedPhone = whatsapp.trim().replace(/[^\d+]/g, "")
       const body = {
         name: nombre.trim(),
         email: email.trim() ? email.trim() : null,
-        whatsapp_phone: whatsapp.trim(),
+        whatsapp_phone: cleanedPhone,
         active: activo,
       }
       if (mode === "create") await createDriver(body)

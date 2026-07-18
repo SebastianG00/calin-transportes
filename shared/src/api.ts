@@ -29,7 +29,7 @@ export type CancelInput = z.infer<typeof CancelInput>;
 
 export const DriverInput = z.object({
   name: z.string().min(1),
-  whatsapp_phone: z.string().regex(/^\+\d{8,15}$/, "E.164 requerido"),
+  whatsapp_phone: z.string().regex(/^\+\d{8,15}$/, "usa formato +51999999999 (sin espacios)"),
   email: z.string().email().nullable().default(null),
   active: z.boolean().default(true),
 });
