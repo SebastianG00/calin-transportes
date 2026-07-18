@@ -3,28 +3,24 @@ import { Link } from "react-router-dom"
 import {
   ChevronDownIcon,
   Columns3Icon,
-  DownloadIcon,
   Eye,
   MoreVertical,
   PlusIcon,
   SearchIcon,
   SquarePen,
   TruckIcon,
-  TrendingUpIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -51,14 +47,31 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import { units, unitStatusConfig, ultimoMant, type UnitStatus } from "@/data/units"
+import { UnidadSheet } from "@/components/unidad-sheet"
+import { useUnits, type UnitRow } from "@/hooks/use-units"
+import { updateUnit } from "@/lib/unit-actions"
 
-const estadoFilterItems: { label: string; value: UnitStatus | "todas" }[] = [
+type EstadoFilter = "todas" | "activa" | "inactiva"
+
+const estadoFilterItems: { label: string; value: EstadoFilter }[] = [
   { label: "Todas", value: "todas" },
   { label: "Activa", value: "activa" },
-  { label: "Mantenimiento", value: "mantenimiento" },
   { label: "Inactiva", value: "inactiva" },
 ]
+
+function estadoBadge(active: boolean): { label: string; className: string } {
+  return active
+    ? {
+        label: "Activa",
+        className:
+          "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300",
+      }
+    : {
+        label: "Inactiva",
+        className:
+          "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+      }
+}
 
 interface ColumnVisibility {
   capacidad: boolean
@@ -77,11 +90,10 @@ const columnLabels: Record<keyof ColumnVisibility, string> = {
 }
 
 export function UnidadesPage() {
+  const { units, loading, error, refetch } = useUnits()
   const [search, setSearch] = React.useState("")
-  const [estadoFilter, setEstadoFilter] = React.useState<UnitStatus | "todas">(
-    "todas"
-  )
-  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set())
+  const [estadoFilter, setEstadoFilter] = React.useState<EstadoFilter>("todas")
+  const [editing, setEditing] = React.useState<UnitRow | null>(null)
   const [columns, setColumns] = React.useState<ColumnVisibility>({
     capacidad: true,
     conductor: true,
@@ -90,42 +102,41 @@ export function UnidadesPage() {
     cargas: true,
   })
 
+  const total = units.length
+  const activas = units.filter((u) => u.active).length
+  const inactivas = total - activas
+  const cargasTotal = units.reduce((sum, u) => sum + u.cargas, 0)
+
   const filteredUnits = React.useMemo(() => {
     const query = search.trim().toLowerCase()
     return units.filter((unit) => {
       const matchesEstado =
-        estadoFilter === "todas" || unit.estado === estadoFilter
+        estadoFilter === "todas" ||
+        (estadoFilter === "activa" ? unit.active : !unit.active)
       const matchesSearch =
         query.length === 0 ||
         unit.placa.toLowerCase().includes(query) ||
-        unit.conductor.toLowerCase().includes(query)
+        (unit.conductor ?? "").toLowerCase().includes(query)
       return matchesEstado && matchesSearch
     })
-  }, [search, estadoFilter])
+  }, [units, search, estadoFilter])
 
-  const allSelected =
-    filteredUnits.length > 0 &&
-    filteredUnits.every((unit) => selectedIds.has(unit.id))
-
-  function toggleAll(checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const unit of filteredUnits) {
-        if (checked) next.add(unit.id)
-        else next.delete(unit.id)
-      }
-      return next
-    })
+  async function toggleActive(unit: UnitRow) {
+    try {
+      await updateUnit(unit.id, { active: !unit.active })
+      toast.success(unit.active ? "Unidad desactivada." : "Unidad activada.")
+      refetch()
+    } catch {
+      toast.error("No se pudo actualizar la unidad.")
+    }
   }
 
-  function toggleRow(id: number, checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (checked) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }
+  const metricCards: { label: string; value: string | number }[] = [
+    { label: "Total unidades", value: total },
+    { label: "Activas", value: activas },
+    { label: "Inactivas", value: inactivas },
+    { label: "Cargas asignadas", value: cargasTotal },
+  ]
 
   return (
     <div className="flex flex-col gap-4 px-4 lg:px-6">
@@ -137,79 +148,16 @@ export function UnidadesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Total unidades</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              14
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <TrendingUpIcon />
-                +1
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              en la flota
-            </div>
-          </CardFooter>
-        </Card>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Combustible este ciclo</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              S/ 31,400
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <TrendingUpIcon />
-                +6%
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              gasto en combustible
-            </div>
-          </CardFooter>
-        </Card>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Unidades activas</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              11
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <TrendingUpIcon />
-                +2
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              en operación
-            </div>
-          </CardFooter>
-        </Card>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>En mantenimiento</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              2
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">seguimiento</Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              fuera de servicio
-            </div>
-          </CardFooter>
-        </Card>
+        {metricCards.map((card) => (
+          <Card key={card.label} className="@container/card">
+            <CardHeader>
+              <CardDescription>{card.label}</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                {card.value}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        ))}
       </div>
 
       <Card>
@@ -227,9 +175,7 @@ export function UnidadesPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={estadoFilter}
-                onValueChange={(value) =>
-                  setEstadoFilter(value as UnitStatus | "todas")
-                }
+                onValueChange={(value) => setEstadoFilter(value as EstadoFilter)}
                 items={estadoFilterItems}
               >
                 <SelectTrigger size="sm">
@@ -265,18 +211,20 @@ export function UnidadesPage() {
                       >
                         {columnLabels[key]}
                       </DropdownMenuCheckboxItem>
-                    )
+                    ),
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="sm">
-                <DownloadIcon />
-                Exportar
-              </Button>
-              <Button size="sm">
-                <PlusIcon />
-                Agregar unidad
-              </Button>
+              <UnidadSheet
+                mode="create"
+                onDone={refetch}
+                trigger={
+                  <Button size="sm">
+                    <PlusIcon />
+                    Agregar unidad
+                  </Button>
+                }
+              />
             </div>
           </div>
 
@@ -284,13 +232,6 @@ export function UnidadesPage() {
             <Table>
               <TableHeader className="bg-muted">
                 <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={(value) => toggleAll(!!value)}
-                      aria-label="Seleccionar todas"
-                    />
-                  </TableHead>
                   <TableHead>Unidad</TableHead>
                   {columns.capacidad && (
                     <TableHead className="text-right">Capacidad</TableHead>
@@ -305,20 +246,23 @@ export function UnidadesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUnits.length ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      Cargando…
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-red-600">
+                      {error}
+                    </TableCell>
+                  </TableRow>
+                ) : filteredUnits.length ? (
                   filteredUnits.map((unit) => {
-                    const statusConfig = unitStatusConfig[unit.estado]
+                    const badge = estadoBadge(unit.active)
                     return (
                       <TableRow key={unit.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.has(unit.id)}
-                            onCheckedChange={(value) =>
-                              toggleRow(unit.id, !!value)
-                            }
-                            aria-label={`Seleccionar ${unit.placa}`}
-                          />
-                        </TableCell>
                         <TableCell>
                           <Link
                             to={`/unidades/${unit.id}`}
@@ -330,44 +274,30 @@ export function UnidadesPage() {
                             <div className="flex flex-col">
                               <span className="font-medium">{unit.placa}</span>
                               <span className="text-xs text-muted-foreground">
-                                {unit.tipo}
+                                {unit.tipo ?? "—"}
                               </span>
                             </div>
                           </Link>
                         </TableCell>
                         {columns.capacidad && (
                           <TableCell className="text-right tabular-nums text-muted-foreground">
-                            {unit.capacidadKg.toLocaleString("es-PE")} kg
+                            {unit.capacidadKg != null
+                              ? `${unit.capacidadKg.toLocaleString("es-PE")} kg`
+                              : "—"}
                           </TableCell>
                         )}
                         {columns.conductor && (
-                          <TableCell>{unit.conductor}</TableCell>
+                          <TableCell>{unit.conductor ?? "—"}</TableCell>
                         )}
                         {columns.ultimoMant && (
-                          <TableCell>
-                            {ultimoMant(unit) ? (
-                              <div className="flex flex-col">
-                                <span className="font-medium tabular-nums">
-                                  {ultimoMant(unit)!.fecha}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {ultimoMant(unit)!.tipo}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
+                          <TableCell className="text-muted-foreground">
+                            Sin registro
                           </TableCell>
                         )}
                         {columns.estado && (
                           <TableCell>
-                            <Badge
-                              className={cn(
-                                "border-transparent",
-                                statusConfig.className
-                              )}
-                            >
-                              {statusConfig.label}
+                            <Badge className={cn("border-transparent", badge.className)}>
+                              {badge.label}
                             </Badge>
                           </TableCell>
                         )}
@@ -393,6 +323,7 @@ export function UnidadesPage() {
                               size="icon"
                               className="size-8 text-muted-foreground"
                               title="Editar"
+                              onClick={() => setEditing(unit)}
                             >
                               <SquarePen />
                               <span className="sr-only">Editar</span>
@@ -416,9 +347,13 @@ export function UnidadesPage() {
                                 >
                                   Ver detalle
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Editar</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setEditing(unit)}>
+                                  Editar
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Desactivar</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => toggleActive(unit)}>
+                                  {unit.active ? "Desactivar" : "Activar"}
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -428,18 +363,7 @@ export function UnidadesPage() {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={
-                        2 +
-                        Number(columns.capacidad) +
-                        Number(columns.conductor) +
-                        Number(columns.ultimoMant) +
-                        Number(columns.estado) +
-                        Number(columns.cargas) +
-                        1
-                      }
-                      className="h-24 text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       Sin resultados.
                     </TableCell>
                   </TableRow>
@@ -449,6 +373,22 @@ export function UnidadesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {editing && (
+        <UnidadSheet
+          key={editing.id}
+          mode="edit"
+          unit={editing}
+          open
+          onOpenChange={(o) => {
+            if (!o) setEditing(null)
+          }}
+          onDone={() => {
+            setEditing(null)
+            refetch()
+          }}
+        />
+      )}
     </div>
   )
 }
