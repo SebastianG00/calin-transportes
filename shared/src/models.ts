@@ -20,6 +20,7 @@ export const Driver = z.object({
   id: z.string().uuid(),
   name: z.string(),
   whatsapp_phone: z.string(),
+  email: z.string().nullable(),
   active: z.boolean(),
   created_at: z.string(),
 });
@@ -29,6 +30,7 @@ export const Unit = z.object({
   id: z.string().uuid(),
   plate: z.string(),
   capacity_kg: z.number().nullable(),
+  tipo: z.string().nullable(),
   active: z.boolean(),
   created_at: z.string(),
 });
