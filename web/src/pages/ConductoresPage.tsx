@@ -3,29 +3,24 @@ import { Link } from "react-router-dom"
 import {
   ChevronDownIcon,
   Columns3Icon,
-  DownloadIcon,
   Eye,
   MoreVertical,
   PlusIcon,
   SearchIcon,
   SquarePen,
-  TrendingDownIcon,
-  TrendingUpIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -52,19 +47,41 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import {
-  drivers,
-  driverInitials,
-  driverStatusConfig,
-  type DriverStatus,
-} from "@/data/drivers"
+import { ConductorSheet } from "@/components/conductor-sheet"
+import { useDrivers, type DriverRow } from "@/hooks/use-drivers"
+import { updateDriver } from "@/lib/driver-actions"
 
-const estadoFilterItems: { label: string; value: DriverStatus | "todos" }[] = [
+type EstadoFilter = "todos" | "activo" | "inactivo"
+
+const estadoFilterItems: { label: string; value: EstadoFilter }[] = [
   { label: "Todos", value: "todos" },
   { label: "Activo", value: "activo" },
-  { label: "En espera", value: "en_espera" },
   { label: "Inactivo", value: "inactivo" },
 ]
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase()
+}
+
+function estadoBadge(active: boolean): { label: string; className: string } {
+  return active
+    ? {
+        label: "Activo",
+        className:
+          "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300",
+      }
+    : {
+        label: "Inactivo",
+        className:
+          "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
+      }
+}
 
 interface ColumnVisibility {
   whatsapp: boolean
@@ -79,53 +96,51 @@ const columnLabels: Record<keyof ColumnVisibility, string> = {
 }
 
 export function ConductoresPage() {
+  const { drivers, loading, error, refetch } = useDrivers()
   const [search, setSearch] = React.useState("")
-  const [estadoFilter, setEstadoFilter] = React.useState<
-    DriverStatus | "todos"
-  >("todos")
-  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set())
+  const [estadoFilter, setEstadoFilter] = React.useState<EstadoFilter>("todos")
+  const [editing, setEditing] = React.useState<DriverRow | null>(null)
   const [columns, setColumns] = React.useState<ColumnVisibility>({
     whatsapp: true,
     estado: true,
     cargas: true,
   })
 
+  const total = drivers.length
+  const activos = drivers.filter((d) => d.active).length
+  const inactivos = total - activos
+  const cargasTotal = drivers.reduce((sum, d) => sum + d.cargas, 0)
+
   const filteredDrivers = React.useMemo(() => {
     const query = search.trim().toLowerCase()
     return drivers.filter((driver) => {
       const matchesEstado =
-        estadoFilter === "todos" || driver.estado === estadoFilter
+        estadoFilter === "todos" ||
+        (estadoFilter === "activo" ? driver.active : !driver.active)
       const matchesSearch =
         query.length === 0 ||
         driver.nombre.toLowerCase().includes(query) ||
-        driver.email.toLowerCase().includes(query)
+        (driver.email ?? "").toLowerCase().includes(query)
       return matchesEstado && matchesSearch
     })
-  }, [search, estadoFilter])
+  }, [drivers, search, estadoFilter])
 
-  const allSelected =
-    filteredDrivers.length > 0 &&
-    filteredDrivers.every((driver) => selectedIds.has(driver.id))
-
-  function toggleAll(checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const driver of filteredDrivers) {
-        if (checked) next.add(driver.id)
-        else next.delete(driver.id)
-      }
-      return next
-    })
+  async function toggleActive(driver: DriverRow) {
+    try {
+      await updateDriver(driver.id, { active: !driver.active })
+      toast.success(driver.active ? "Conductor desactivado." : "Conductor activado.")
+      refetch()
+    } catch {
+      toast.error("No se pudo actualizar el conductor.")
+    }
   }
 
-  function toggleRow(id: number, checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (checked) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }
+  const metricCards: { label: string; value: string | number }[] = [
+    { label: "Total conductores", value: total },
+    { label: "Activos", value: activos },
+    { label: "Inactivos", value: inactivos },
+    { label: "Cargas asignadas", value: cargasTotal },
+  ]
 
   return (
     <div className="flex flex-col gap-4 px-4 lg:px-6">
@@ -137,82 +152,16 @@ export function ConductoresPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Total conductores</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              14
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <TrendingUpIcon />
-                +2
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              desde 12
-            </div>
-          </CardFooter>
-        </Card>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Pagado este ciclo</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              S/ 48,200
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <TrendingUpIcon />
-                +8%
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              pagos a conductores
-            </div>
-          </CardFooter>
-        </Card>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>Conductores activos</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              12
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <TrendingUpIcon />
-                +32%
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              con cargas asignadas
-            </div>
-          </CardFooter>
-        </Card>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardDescription>En espera</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              2
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <TrendingDownIcon />
-                −8%
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 text-muted-foreground">
-              sin actividad reciente
-            </div>
-          </CardFooter>
-        </Card>
+        {metricCards.map((card) => (
+          <Card key={card.label} className="@container/card">
+            <CardHeader>
+              <CardDescription>{card.label}</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                {card.value}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        ))}
       </div>
 
       <Card>
@@ -230,9 +179,7 @@ export function ConductoresPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={estadoFilter}
-                onValueChange={(value) =>
-                  setEstadoFilter(value as DriverStatus | "todos")
-                }
+                onValueChange={(value) => setEstadoFilter(value as EstadoFilter)}
                 items={estadoFilterItems}
               >
                 <SelectTrigger size="sm">
@@ -268,18 +215,20 @@ export function ConductoresPage() {
                       >
                         {columnLabels[key]}
                       </DropdownMenuCheckboxItem>
-                    )
+                    ),
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="sm">
-                <DownloadIcon />
-                Exportar
-              </Button>
-              <Button size="sm">
-                <PlusIcon />
-                Agregar conductor
-              </Button>
+              <ConductorSheet
+                mode="create"
+                onDone={refetch}
+                trigger={
+                  <Button size="sm">
+                    <PlusIcon />
+                    Agregar conductor
+                  </Button>
+                }
+              />
             </div>
           </div>
 
@@ -287,13 +236,6 @@ export function ConductoresPage() {
             <Table>
               <TableHeader className="bg-muted">
                 <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={(value) => toggleAll(!!value)}
-                      aria-label="Seleccionar todos"
-                    />
-                  </TableHead>
                   <TableHead>Conductor</TableHead>
                   {columns.whatsapp && <TableHead>WhatsApp</TableHead>}
                   {columns.estado && <TableHead>Estado</TableHead>}
@@ -304,33 +246,34 @@ export function ConductoresPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDrivers.length ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      Cargando…
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-red-600">
+                      {error}
+                    </TableCell>
+                  </TableRow>
+                ) : filteredDrivers.length ? (
                   filteredDrivers.map((driver) => {
-                    const statusConfig = driverStatusConfig[driver.estado]
+                    const badge = estadoBadge(driver.active)
                     return (
                       <TableRow key={driver.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.has(driver.id)}
-                            onCheckedChange={(value) =>
-                              toggleRow(driver.id, !!value)
-                            }
-                            aria-label={`Seleccionar ${driver.nombre}`}
-                          />
-                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar>
                               <AvatarFallback>
-                                {driverInitials(driver.nombre)}
+                                {initials(driver.nombre)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-medium">
-                                {driver.nombre}
-                              </span>
+                              <span className="font-medium">{driver.nombre}</span>
                               <span className="text-xs text-muted-foreground">
-                                {driver.email}
+                                {driver.email ?? "—"}
                               </span>
                             </div>
                           </div>
@@ -342,13 +285,8 @@ export function ConductoresPage() {
                         )}
                         {columns.estado && (
                           <TableCell>
-                            <Badge
-                              className={cn(
-                                "border-transparent",
-                                statusConfig.className
-                              )}
-                            >
-                              {statusConfig.label}
+                            <Badge className={cn("border-transparent", badge.className)}>
+                              {badge.label}
                             </Badge>
                           </TableCell>
                         )}
@@ -374,6 +312,7 @@ export function ConductoresPage() {
                               size="icon"
                               className="size-8 text-muted-foreground"
                               title="Editar"
+                              onClick={() => setEditing(driver)}
                             >
                               <SquarePen />
                               <span className="sr-only">Editar</span>
@@ -393,15 +332,17 @@ export function ConductoresPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-40">
                                 <DropdownMenuItem
-                                  render={
-                                    <Link to={`/conductores/${driver.id}`} />
-                                  }
+                                  render={<Link to={`/conductores/${driver.id}`} />}
                                 >
                                   Ver perfil
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Editar</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setEditing(driver)}>
+                                  Editar
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Desactivar</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => toggleActive(driver)}>
+                                  {driver.active ? "Desactivar" : "Activar"}
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -411,16 +352,7 @@ export function ConductoresPage() {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={
-                        2 +
-                        Number(columns.whatsapp) +
-                        Number(columns.estado) +
-                        Number(columns.cargas) +
-                        1
-                      }
-                      className="h-24 text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                       Sin resultados.
                     </TableCell>
                   </TableRow>
@@ -430,6 +362,22 @@ export function ConductoresPage() {
           </div>
         </CardContent>
       </Card>
+
+      {editing && (
+        <ConductorSheet
+          key={editing.id}
+          mode="edit"
+          driver={editing}
+          open
+          onOpenChange={(o) => {
+            if (!o) setEditing(null)
+          }}
+          onDone={() => {
+            setEditing(null)
+            refetch()
+          }}
+        />
+      )}
     </div>
   )
 }
