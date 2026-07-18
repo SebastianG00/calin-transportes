@@ -26,7 +26,6 @@ import {
   cancelLoad,
   nextAdvance,
   remindLoad,
-  resendLoad,
 } from "@/lib/load-actions"
 import type { BoardLoad } from "@/lib/loads"
 
@@ -111,24 +110,14 @@ export function RowActions({
             </DropdownMenuItem>
           )}
           {canRemind && (
-            <>
-              <DropdownMenuItem
-                disabled={busy}
-                onClick={() =>
-                  run(() => remindLoad(load.id), "Recordatorio enviado.")
-                }
-              >
-                Recordar
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={busy}
-                onClick={() =>
-                  run(() => resendLoad(load.id), "Solicitud reenviada.")
-                }
-              >
-                Reenviar solicitud
-              </DropdownMenuItem>
-            </>
+            <DropdownMenuItem
+              disabled={busy}
+              onClick={() =>
+                run(() => remindLoad(load.id), "Recordatorio enviado.")
+              }
+            >
+              Recordar
+            </DropdownMenuItem>
           )}
           {canCancel && (
             <>
