@@ -36,15 +36,16 @@ export function useUnits(): {
     setError(null)
     const counts = new Map<string, number>()
     const activeDriver = new Map<string, string>()
-    for (const row of (l.data ?? []) as Array<{
+    for (const row of (l.data ?? []) as unknown as Array<{
       assigned_unit_id: string | null
       status: string
-      driver: { name: string } | null
+      driver: { name: string } | { name: string }[] | null
     }>) {
       if (!row.assigned_unit_id) continue
       counts.set(row.assigned_unit_id, (counts.get(row.assigned_unit_id) ?? 0) + 1)
-      if (ACTIVE.includes(row.status) && row.driver?.name) {
-        activeDriver.set(row.assigned_unit_id, row.driver.name)
+      const driver = Array.isArray(row.driver) ? row.driver[0] : row.driver
+      if (ACTIVE.includes(row.status) && driver?.name) {
+        activeDriver.set(row.assigned_unit_id, driver.name)
       }
     }
     setUnits(
