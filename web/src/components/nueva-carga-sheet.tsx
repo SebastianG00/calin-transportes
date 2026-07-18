@@ -104,7 +104,11 @@ export function NuevaCargaSheet({ onCreated }: { onCreated: () => void }) {
         <form className="flex flex-col gap-4 p-4" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-1.5">
             <Label>Cliente</Label>
-            <Select value={clientId} onValueChange={(v) => setClientId(v as string)}>
+            <Select
+              value={clientId}
+              onValueChange={(v) => setClientId(v as string)}
+              items={clients.map((c) => ({ value: c.id, label: c.label }))}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecciona un cliente" />
               </SelectTrigger>
@@ -119,7 +123,11 @@ export function NuevaCargaSheet({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Conductor</Label>
-            <Select value={driverId} onValueChange={(v) => setDriverId(v as string)}>
+            <Select
+              value={driverId}
+              onValueChange={(v) => setDriverId(v as string)}
+              items={drivers.map((d) => ({ value: d.id, label: d.label }))}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecciona un conductor" />
               </SelectTrigger>
@@ -134,7 +142,11 @@ export function NuevaCargaSheet({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Unidad</Label>
-            <Select value={unitId} onValueChange={(v) => setUnitId(v as string)}>
+            <Select
+              value={unitId}
+              onValueChange={(v) => setUnitId(v as string)}
+              items={units.map((u) => ({ value: u.id, label: u.label }))}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecciona una unidad" />
               </SelectTrigger>

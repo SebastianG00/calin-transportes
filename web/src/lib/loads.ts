@@ -81,7 +81,7 @@ export function toUiStatus(
 function confirmacionText(row: LoadRow): string {
   const ui = toUiStatus(row.status, row.no_response)
   if (ui === "confirmado" && row.confirmed_at) {
-    return format(new Date(row.confirmed_at), "HH:mm")
+    return format(new Date(row.confirmed_at), "d MMM, HH:mm", { locale: es })
   }
   if (ui === "sin_respuesta") return "⚠ sin respuesta"
   if (ui === "enviado" && row.confirm_due_at) {
