@@ -4,6 +4,7 @@ import { format } from "date-fns"
 
 import { statusConfig } from "@/components/data-table"
 import { RowActions } from "@/components/row-actions"
+import { SubirGuiaButton } from "@/components/subir-guia-button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -72,7 +73,8 @@ export function LoadDetailPage() {
         <Badge className={cn("border-transparent", config.className)}>
           {config.label}
         </Badge>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <SubirGuiaButton loadId={load.id} onUploaded={refetch} />
           <RowActions load={boardLoad} onDone={refetch} />
         </div>
       </div>
