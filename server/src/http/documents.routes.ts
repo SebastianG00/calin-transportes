@@ -14,6 +14,10 @@ documentsRouter.post("/loads/:id/documents", upload.single("file"), async (req, 
   } catch (e) { next(e); }
 });
 
+documentsRouter.get("/loads/:id/documents", async (req, res, next) => {
+  try { res.json(await svc.listLoadDocuments(req.params.id)); } catch (e) { next(e); }
+});
+
 documentsRouter.get("/documents", async (req, res, next) => {
   try {
     const status = (req.query.status as string) ?? "pending";

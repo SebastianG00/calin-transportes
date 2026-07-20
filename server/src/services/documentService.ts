@@ -89,3 +89,22 @@ export async function getDocumentDetail(docId: string) {
   }
   return { document: doc, load: load ?? {}, photoUrl };
 }
+
+export async function listLoadDocuments(loadId: string) {
+  const db = getServiceClient();
+  const { data, error } = await db.from("load_documents")
+    .select("*, message:messages(media_storage_path)")
+    .eq("load_id", loadId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const rows = (data ?? []) as Array<Record<string, unknown> & { message?: { media_storage_path?: string } | null }>;
+  return Promise.all(rows.map(async ({ message, ...doc }) => {
+    const path = message?.media_storage_path;
+    let photoUrl: string | null = null;
+    if (path) {
+      const signed = await db.storage.from("guias").createSignedUrl(path, 300);
+      photoUrl = signed.data?.signedUrl ?? null;
+    }
+    return { ...doc, photoUrl } as Record<string, unknown> & { photoUrl: string | null };
+  }));
+}
