@@ -17,6 +17,7 @@ export function RevisionDetailPage() {
   const [detail, setDetail] = useState<DocumentDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [overrideOpen, setOverrideOpen] = useState(false)
   const [fields, setFields] = useState({ ruc: "", serie: "", numero: "", fecha: "", peso_kg: "" })
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function RevisionDetailPage() {
 
   const flags = detail.document.validation?.flags ?? []
 
-  async function onConfirm() {
+  async function doConfirm() {
     setBusy(true)
     try {
       const corrections: Record<string, string> = {}
@@ -53,6 +54,12 @@ export function RevisionDetailPage() {
     } catch (e) {
       toast.error((e as Error).message)
     } finally { setBusy(false) }
+  }
+
+  function onConfirmClick() {
+    // Flagged (red/amber) docs require an explicit override; green confirms directly.
+    if (detail!.document.validation?.overall === "green") doConfirm()
+    else setOverrideOpen(true)
   }
 
   async function onReject() {
@@ -108,15 +115,29 @@ export function RevisionDetailPage() {
                 onChange={(e) => setFields((s) => ({ ...s, peso_kg: e.target.value }))}
               />
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <Badge className="border-transparent bg-muted text-foreground">
-                {detail.document.validation?.overall ?? "—"}
-              </Badge>
-              <div className="ml-auto flex gap-2">
-                <Button variant="outline" onClick={onReject} disabled={busy}>Rechazar</Button>
-                <Button onClick={onConfirm} disabled={busy}>Confirmar</Button>
+            {overrideOpen ? (
+              <div className="mt-2 flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3">
+                <p className="text-sm font-medium text-amber-800">Este documento tiene advertencias:</p>
+                <ul className="list-disc pl-5 text-xs text-amber-700">
+                  {flags.map((f, i) => (<li key={i}>{f.message}</li>))}
+                </ul>
+                <p className="text-sm text-amber-800">¿Confirmar de todos modos?</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setOverrideOpen(false)} disabled={busy}>Cancelar</Button>
+                  <Button onClick={doConfirm} disabled={busy}>Sí, confirmar</Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="mt-2 flex items-center gap-2">
+                <Badge className="border-transparent bg-muted text-foreground">
+                  {detail.document.validation?.overall ?? "—"}
+                </Badge>
+                <div className="ml-auto flex gap-2">
+                  <Button variant="outline" onClick={onReject} disabled={busy}>Rechazar</Button>
+                  <Button onClick={onConfirmClick} disabled={busy}>Confirmar</Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
