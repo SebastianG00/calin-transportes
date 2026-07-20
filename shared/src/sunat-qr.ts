@@ -44,6 +44,10 @@ export function parseSunatQr(payload: string): SunatQrFields | null {
   const parts = payload.split("|").map((s) => s.trim());
   const tipoDoc = parts[1];
   const docType = TIPO_DOC_TO_DOCTYPE[tipoDoc] ?? "other";
+  // Unknown/unmapped tipoDoc: fail loud rather than guess a field order we
+  // don't have (the pipeline treats a null parse as doc_type 'other' → human
+  // classifies). Real boleta (03) / other orders get locked against real photos.
+  if (docType === "other") return null;
   const order = orderFor(tipoDoc);
   if (parts.length < order.length) return null;
 

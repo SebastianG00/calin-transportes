@@ -50,6 +50,10 @@ describe("parseSunatQr", () => {
   it("returns null when required fields are missing", () => {
     expect(parseSunatQr("20100047218|01")).toBeNull();
   });
+
+  it("returns null for a decodable QR with an unknown tipoDoc (e.g. boleta 03)", () => {
+    expect(parseSunatQr("20100047218|03|B001|5|18.00|118.00|2026-07-18|6|20131312955")).toBeNull();
+  });
 });
 
 describe("hasValidRucPrefix", () => {
