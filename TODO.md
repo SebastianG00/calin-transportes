@@ -34,6 +34,19 @@ These exist from day one specifically so later work needs no migration:
 
 ## Slice 2 — Delivery & Document Intelligence Pipeline (W2 + W3) ⭐ the hard one
 
+> **2026-07-20 — Slice 2 (Tier 2, the AI layer) is being MERGED with Slice 3 (per-client rules)**
+> into one AI document-intelligence program of **two specs** (see NEXT.md for the live plan):
+> - **Tier 1** ✅ DONE (deterministic: QR-for-facturas + checksums + 3-way reconciliation + review
+>   queue, merged @ 46e1316).
+> - **Spec 1 — Client Documents & Profiles** (= Capability B **+ Slice 3 fused**): composable
+>   per-client requirement clauses (AI drafts from prose) + per-trip proof-of-delivery guía
+>   (deterministic fill) + AI summary email + client management. ▶️ next, no photos needed.
+> - **Spec 2 — Guía Vision Extraction** (= Capability A): VLM reads QR-less guías + Tesseract
+>   grounding + signature-verify + workbench + evals (mock data now, real photos later).
+>
+> **KEY:** guías have **NO QR** (signature = proof; QR only on facturas) → VLM is the primary reader.
+> AI authors requirement clauses (per-trip-capable); producing each guía is deterministic fill (safety).
+
 The technically hard, differentiating core. Likely **splits into sub-slices**
 (intake+QR+checksums first; VLM+grounding+workbench next; evals last).
 
