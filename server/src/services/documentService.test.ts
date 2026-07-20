@@ -44,6 +44,15 @@ describe("uploadGuia → confirmDocument", () => {
       .from("document_events").select("*").eq("document_id", docId).eq("kind", "correction");
     expect((events ?? []).length).toBeGreaterThan(0);
   });
+
+  it("logs a human-readable load_events entry describing the upload outcome", async () => {
+    const payload = `${CLIENT_RUC}|09|T001|72|2026-07-18|20131312955`;
+    await uploadGuia(loadId, await guiaWithQr(payload), "image/png");
+    const { data: events } = await getServiceClient()
+      .from("load_events").select("reason").eq("load_id", loadId);
+    const reasons = (events ?? []).map((e) => e.reason ?? "");
+    expect(reasons.some((r) => r.includes("Guía subida"))).toBe(true);
+  });
 });
 
 describe("listLoadDocuments", () => {
