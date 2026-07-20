@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { getServiceClient } from "../db/client.js";
 import { resetDb, seedClient, seedDriver, seedUnit } from "../testutils/db.js";
 import { guiaWithQr } from "../testutils/guia.js";
-import { uploadGuia, confirmDocument, getDocumentDetail } from "./documentService.js";
+import { uploadGuia, confirmDocument, getDocumentDetail, listLoadDocuments } from "./documentService.js";
 
 const CLIENT_RUC = "20100047218";
 let loadId: string;
@@ -43,5 +43,30 @@ describe("uploadGuia → confirmDocument", () => {
     const { data: events } = await getServiceClient()
       .from("document_events").select("*").eq("document_id", docId).eq("kind", "correction");
     expect((events ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("logs a human-readable load_events entry describing the upload outcome", async () => {
+    const payload = `${CLIENT_RUC}|09|T001|72|2026-07-18|20131312955`;
+    await uploadGuia(loadId, await guiaWithQr(payload), "image/png");
+    const { data: events } = await getServiceClient()
+      .from("load_events").select("reason").eq("load_id", loadId);
+    const reasons = (events ?? []).map((e) => e.reason ?? "");
+    expect(reasons.some((r) => r.includes("Guía subida"))).toBe(true);
+  });
+});
+
+describe("listLoadDocuments", () => {
+  it("returns the load's documents with a signed photo URL", async () => {
+    const payload = `${CLIENT_RUC}|09|T001|71|2026-07-18|20131312955`;
+    const up = await uploadGuia(loadId, await guiaWithQr(payload), "image/png");
+    expect(up.outcome).toBe("created");
+
+    const docs = await listLoadDocuments(loadId);
+    expect(docs.length).toBeGreaterThan(0);
+    const d = docs[0];
+    expect(d.load_id).toBe(loadId);
+    expect(typeof d.photoUrl === "string" && d.photoUrl.length > 0).toBe(true);
+    // the raw joined message object must not leak through
+    expect((d as Record<string, unknown>).message).toBeUndefined();
   });
 });

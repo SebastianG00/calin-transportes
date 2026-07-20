@@ -9,6 +9,23 @@ import { DomainError } from "../domain/errors.js";
 
 const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg" };
 
+const DOC_TYPE_ES: Record<string, string> = {
+  gre_remitente: "GRE Remitente",
+  gre_transportista: "GRE Transportista",
+  factura: "Factura",
+  other: "sin clasificar",
+};
+const OVERALL_ES: Record<string, string> = { green: "verde", amber: "ámbar", red: "roja" };
+
+function uploadEventReason(result: PipelineResult): string {
+  if (result.outcome === "retake") return "Foto de guía rechazada por baja calidad — se pidió reintento";
+  if (result.outcome === "duplicate") return "Foto de guía duplicada, ignorada";
+  const doc = result.document as { doc_type?: string; validation?: { overall?: string } };
+  const dt = DOC_TYPE_ES[doc.doc_type ?? "other"] ?? "documento";
+  const ov = OVERALL_ES[doc.validation?.overall ?? ""] ?? "";
+  return `Guía subida — validación ${ov} (${dt})`;
+}
+
 export async function uploadGuia(loadId: string, buf: Buffer, mime: string): Promise<PipelineResult> {
   await getLoad(loadId); // 404s via .single() if the load doesn't exist
   const ext = EXT[mime] ?? "jpg";
@@ -18,8 +35,11 @@ export async function uploadGuia(loadId: string, buf: Buffer, mime: string): Pro
   const msg = await insertMessage({
     provider: "office", provider_message_sid: `office-${randomUUID()}`,
     direction: "in", load_id: loadId, media_storage_path: path, processed: false,
+    body: "Foto de guía recibida",
   } as never);
-  return processDocumentMessage((msg as { id: string }).id);
+  const result = await processDocumentMessage((msg as { id: string }).id);
+  await appendEvent(loadId, null, null, "office", "office", uploadEventReason(result));
+  return result;
 }
 
 export interface ConfirmInput { corrections?: Record<string, string>; peso_kg?: number }
@@ -58,6 +78,8 @@ export async function confirmDocument(docId: string, input: ConfirmInput, userId
     await updateLoad(doc.load_id, { status: "delivered" });
     await appendEvent(doc.load_id, load.status, "delivered", "office", userId, "guía confirmada");
     loadStatusChanged = true;
+  } else {
+    await appendEvent(doc.load_id, null, null, "office", userId, "Guía confirmada");
   }
   return { document, loadStatusChanged };
 }
@@ -69,6 +91,7 @@ export async function rejectDocument(docId: string, reason: string, userId: stri
   }
   const document = await updateDocument(docId, { review_status: "rejected" });
   await insertDocumentEvent(docId, "rejected", { reason }, userId);
+  await appendEvent(doc.load_id, null, null, "office", userId, "Guía rechazada en revisión");
   return document;
 }
 
@@ -88,4 +111,23 @@ export async function getDocumentDetail(docId: string) {
     photoUrl = signed.data?.signedUrl ?? null;
   }
   return { document: doc, load: load ?? {}, photoUrl };
+}
+
+export async function listLoadDocuments(loadId: string) {
+  const db = getServiceClient();
+  const { data, error } = await db.from("load_documents")
+    .select("*, message:messages(media_storage_path)")
+    .eq("load_id", loadId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const rows = (data ?? []) as Array<Record<string, unknown> & { message?: { media_storage_path?: string } | null }>;
+  return Promise.all(rows.map(async ({ message, ...doc }) => {
+    const path = message?.media_storage_path;
+    let photoUrl: string | null = null;
+    if (path) {
+      const signed = await db.storage.from("guias").createSignedUrl(path, 300);
+      photoUrl = signed.data?.signedUrl ?? null;
+    }
+    return { ...doc, photoUrl } as Record<string, unknown> & { photoUrl: string | null };
+  }));
 }
