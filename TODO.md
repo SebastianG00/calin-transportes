@@ -112,15 +112,19 @@ self-reported certainty.** Four evidence sources, strongest→softest:
 
 ---
 
-## Slice 3 — Per-client rules engine (turns "client rules" into executable checks)
+## Slice 3 — Per-client rules engine (⚠️ FUSED into Slice 2's AI program — see NEXT.md)
 
-**Delivers:** client management UI (deferred from Slice 1) + per-client rules
-that Stage 5 reconciliation and message templating consume: weight min/max,
-weight tolerance, destination aliases, required document types, message-language
-quirks.
+> **2026-07-20 reframe:** Slice 3 is no longer a standalone slice. Its core (per-client
+> requirements/rules) is **folded into "Spec 1 — Client Documents & Profiles"** of the AI
+> document-intelligence program (Slice 2 Tier 2 + Slice 3). Requirements are modeled in 3
+> buckets: **reconcile** (data: weight/time/plate), **verify** (vision: signature/stamp), and
+> **attest** (human checkbox: clean/odorless/EPP/stops). AI drafts the structured checklist
+> from a client's prose. Build it there, NOT separately. Details live in NEXT.md + the (coming)
+> `docs/superpowers/specs/` Spec-1 design.
 
-**Clarify:** what rule categories exist per client? How are rules edited (form vs
-JSON)? Which rules are hard-fail vs soft-flag?
+**Original delivers (for reference):** client management UI (deferred from Slice 1) + per-client
+rules that reconciliation and message templating consume: weight min/max, weight tolerance,
+destination aliases, required document types, message-language quirks.
 
 **Depends on:** generalizes Slice 1's `app_settings` pattern.
 
