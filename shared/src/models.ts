@@ -90,3 +90,97 @@ export const Message = z.object({
   created_at: z.string(),
 });
 export type Message = z.infer<typeof Message>;
+
+export const ClauseBucket = z.enum(["reconcile", "verify", "attest"]);
+export type ClauseBucket = z.infer<typeof ClauseBucket>;
+
+export const RequirementClause = z.object({
+  id: z.string().uuid(),
+  client_id: z.string().uuid().nullable(),
+  title: z.string(),
+  body: z.string(),
+  bucket: ClauseBucket,
+  params: z.record(z.unknown()),
+  source: z.enum(["human", "ai"]),
+  active: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type RequirementClause = z.infer<typeof RequirementClause>;
+
+export const ClauseInput = z.object({
+  client_id: z.string().uuid().nullable().optional(),
+  title: z.string().min(1),
+  body: z.string().min(1),
+  bucket: ClauseBucket,
+  params: z.record(z.unknown()).optional(),
+  source: z.enum(["human", "ai"]).optional(),
+  active: z.boolean().optional(),
+});
+export type ClauseInput = z.infer<typeof ClauseInput>;
+
+export const DocumentTemplate = z.object({
+  id: z.string().uuid(),
+  client_id: z.string().uuid().nullable(),
+  kind: z.enum(["guia", "email"]),
+  name: z.string(),
+  body: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type DocumentTemplate = z.infer<typeof DocumentTemplate>;
+
+export const TemplateInput = z.object({
+  client_id: z.string().uuid().nullable().optional(),
+  kind: z.enum(["guia", "email"]),
+  name: z.string().min(1),
+  body: z.string().min(1),
+});
+export type TemplateInput = z.infer<typeof TemplateInput>;
+
+export const GuiaBuildInput = z.object({
+  templateId: z.string().uuid().nullable().optional(),
+  clauseIds: z.array(z.string().uuid()).default([]),
+  oneOffClauses: z
+    .array(z.object({ title: z.string().min(1), body: z.string().min(1), bucket: ClauseBucket }))
+    .default([]),
+});
+export type GuiaBuildInput = z.infer<typeof GuiaBuildInput>;
+
+export const DeliveryGuia = z.object({
+  id: z.string().uuid(),
+  load_id: z.string().uuid(),
+  template_id: z.string().uuid().nullable(),
+  clauses: z.array(z.object({ title: z.string(), body: z.string(), bucket: ClauseBucket })),
+  data: z.record(z.unknown()),
+  status: z.enum(["draft", "approved"]),
+  approved_by: z.string().uuid().nullable(),
+  approved_at: z.string().nullable(),
+  html: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type DeliveryGuia = z.infer<typeof DeliveryGuia>;
+
+export const DeliveryEmail = z.object({
+  id: z.string().uuid(),
+  load_id: z.string().uuid(),
+  template_id: z.string().uuid().nullable(),
+  draft_text: z.string(),
+  edited_text: z.string().nullable(),
+  status: z.enum(["draft", "sent"]),
+  created_by: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type DeliveryEmail = z.infer<typeof DeliveryEmail>;
+
+// Editable client fields (Clientes page). RUC stays 11 chars; contact fields optional.
+export const ClientInput = z.object({
+  name: z.string().min(1),
+  ruc: z.string().length(11),
+  contact_name: z.string().nullable().optional(),
+  contact_phone: z.string().nullable().optional(),
+  contact_email: z.string().email().nullable().optional(),
+});
+export type ClientInput = z.infer<typeof ClientInput>;
