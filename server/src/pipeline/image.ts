@@ -45,27 +45,37 @@ export function blurScore(gray: Uint8Array, width: number, height: number): numb
   return variance;
 }
 
-// dHash: sample down to a 9x8 grayscale grid, compare each pixel to its right
-// neighbour → 64 bits → 16 hex chars. Sampling avoids any jimp resize API churn.
+// dHash: average-pool the image onto a 17x16 grayscale grid, then compare each
+// cell to its right neighbour → 256 bits → 64 hex chars. Average-pooling (not
+// point-sampling) at this resolution is required so documents that differ only
+// in a small region (e.g. two guías with the same layout but different printed
+// content / QR) produce distinct hashes. A coarse 9x8 point-sampled grid
+// collapsed near-identical documents together → false dedup positives
+// (identical re-send = 0, distinct documents ≥ 10 with this version).
 export function dHash(img: Rgba): string {
   const gray = toGrayscale(img);
-  const W = 9, H = 8;
-  const small = new Uint8Array(W * H);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const sx = Math.min(img.width - 1, Math.floor((x + 0.5) * img.width / W));
-      const sy = Math.min(img.height - 1, Math.floor((y + 0.5) * img.height / H));
-      small[y * W + x] = gray[sy * img.width + sx];
+  const H = 16, W = H + 1; // 17x16 grid → (W-1)*H = 256-bit hash
+  const { width, height } = img;
+  const cell = new Float64Array(W * H);
+  for (let cy = 0; cy < H; cy++) {
+    for (let cx = 0; cx < W; cx++) {
+      const x0 = Math.floor((cx * width) / W), x1 = Math.floor(((cx + 1) * width) / W);
+      const y0 = Math.floor((cy * height) / H), y1 = Math.floor(((cy + 1) * height) / H);
+      let sum = 0, n = 0;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) { sum += gray[y * width + x]; n++; }
+      }
+      cell[cy * W + cx] = n ? sum / n : 0;
     }
   }
   let bits = "";
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W - 1; x++) {
-      bits += small[y * W + x] < small[y * W + x + 1] ? "1" : "0";
+  for (let cy = 0; cy < H; cy++) {
+    for (let cx = 0; cx < W - 1; cx++) {
+      bits += cell[cy * W + cx] < cell[cy * W + cx + 1] ? "1" : "0";
     }
   }
   let hex = "";
-  for (let i = 0; i < 64; i += 4) {
+  for (let i = 0; i < bits.length; i += 4) {
     hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
   }
   return hex;

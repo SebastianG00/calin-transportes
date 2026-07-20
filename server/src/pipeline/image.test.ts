@@ -45,7 +45,7 @@ describe("blurScore", () => {
 describe("dHash + hammingDistance", () => {
   it("returns 16 hex chars and 0 distance to itself", () => {
     const h = dHash(stripes(32, 32));
-    expect(h).toMatch(/^[0-9a-f]{16}$/);
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
     expect(hammingDistance(h, h)).toBe(0);
   });
   it("distance grows between dissimilar images", () => {
