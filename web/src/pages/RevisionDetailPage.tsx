@@ -45,11 +45,15 @@ export function RevisionDetailPage() {
       for (const k of ["ruc", "serie", "numero", "fecha"] as const) {
         if (fields[k] && fields[k] !== (detail!.document[k] ?? "")) corrections[k] = fields[k]
       }
-      await confirmDocument(id!, {
+      const out = (await confirmDocument(id!, {
         corrections,
         peso_kg: fields.peso_kg ? Number(fields.peso_kg) : undefined,
-      })
-      toast.success("Documento confirmado. Carga marcada como entregada.")
+      })) as { loadStatusChanged?: boolean }
+      toast.success(
+        out?.loadStatusChanged
+          ? "Documento confirmado. Carga marcada como entregada."
+          : "Documento confirmado.",
+      )
       navigate("/revision")
     } catch (e) {
       toast.error((e as Error).message)
