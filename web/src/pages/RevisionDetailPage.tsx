@@ -120,12 +120,17 @@ export function RevisionDetailPage() {
               />
             </div>
             {overrideOpen ? (
-              <div className="mt-2 flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3">
-                <p className="text-sm font-medium text-amber-800">Este documento tiene advertencias:</p>
-                <ul className="list-disc pl-5 text-xs text-amber-700">
-                  {flags.map((f, i) => (<li key={i}>{f.message}</li>))}
+              <div className="mt-2 flex flex-col gap-2 rounded-md border p-3">
+                <p className="text-sm font-medium">Este documento tiene advertencias:</p>
+                <ul className="flex flex-col gap-1 text-xs">
+                  {flags.map((f, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-amber-700">
+                      <span aria-hidden>⚠</span>
+                      <span>{f.message}</span>
+                    </li>
+                  ))}
                 </ul>
-                <p className="text-sm text-amber-800">¿Confirmar de todos modos?</p>
+                <p className="text-sm text-muted-foreground">¿Confirmar de todos modos?</p>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setOverrideOpen(false)} disabled={busy}>Cancelar</Button>
                   <Button onClick={doConfirm} disabled={busy}>Sí, confirmar</Button>
