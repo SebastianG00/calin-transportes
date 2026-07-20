@@ -1,6 +1,7 @@
 import express from "express";
 import { requireAuth } from "./auth.js";
 import { errorHandler } from "./errorHandler.js";
+import { documentsRouter } from "./documents.routes.js";
 import { loadsRouter } from "./loads.routes.js";
 import { masterDataRouter } from "./masterData.routes.js";
 import { webhookRouter } from "./webhook.routes.js";
@@ -13,6 +14,7 @@ export function createApp() {
   app.get("/health", (_req, res) => res.json({ ok: true }));
   app.use("/api/loads", requireAuth, loadsRouter);  // /api/loads*
   app.use("/api", requireAuth, masterDataRouter);   // /api/drivers, /api/units
+  app.use("/api", requireAuth, documentsRouter);   // /api/loads/:id/documents, /api/documents*
   app.use(errorHandler);
   return app;
 }
