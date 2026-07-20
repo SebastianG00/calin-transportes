@@ -22,6 +22,7 @@ import {
   ListChecks,
   PackageIcon,
   ReceiptIcon,
+  FileCheckIcon,
 } from "lucide-react"
 
 const data = {
@@ -55,6 +56,11 @@ const data = {
       title: "Clientes",
       url: "/clientes",
       icon: <Building2Icon />,
+    },
+    {
+      title: "Revisión",
+      url: "/revision",
+      icon: <FileCheckIcon />,
     },
     {
       title: "Calendario",

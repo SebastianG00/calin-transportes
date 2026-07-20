@@ -14,6 +14,8 @@ import { InventarioPage } from "@/pages/InventarioPage"
 import { LoadDetailPage } from "@/pages/LoadDetailPage"
 import { LoginPage } from "@/pages/LoginPage"
 import { MapaPage } from "@/pages/MapaPage"
+import { RevisionPage } from "@/pages/RevisionPage"
+import { RevisionDetailPage } from "@/pages/RevisionDetailPage"
 import { TareasPage } from "@/pages/TareasPage"
 import { UnidadDetailPage } from "@/pages/UnidadDetailPage"
 import { UnidadesPage } from "@/pages/UnidadesPage"
@@ -38,6 +40,8 @@ const router = createBrowserRouter([
           { path: "unidades", element: <UnidadesPage /> },
           { path: "unidades/:id", element: <UnidadDetailPage /> },
           { path: "clientes", element: <ClientesPage /> },
+          { path: "revision", element: <RevisionPage /> },
+          { path: "revision/:id", element: <RevisionDetailPage /> },
           { path: "calendario", element: <CalendarioPage /> },
           { path: "tareas", element: <TareasPage /> },
           { path: "inventario", element: <InventarioPage /> },
