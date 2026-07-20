@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeftIcon, MessageCircleIcon, PackageCheckIcon } from "lucide-react"
 import { format } from "date-fns"
@@ -5,6 +6,7 @@ import { format } from "date-fns"
 import { statusConfig } from "@/components/data-table"
 import { RowActions } from "@/components/row-actions"
 import { SubirGuiaButton } from "@/components/subir-guia-button"
+import { LoadDocumentsCard } from "@/components/load-documents-card"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -18,6 +20,7 @@ import {
 export function LoadDetailPage() {
   const { id } = useParams()
   const { load, timeline, loading, error, refetch } = useLoadDetail(id)
+  const [docsKey, setDocsKey] = useState(0)
 
   if (loading) {
     return (
@@ -74,7 +77,7 @@ export function LoadDetailPage() {
           {config.label}
         </Badge>
         <div className="ml-auto flex items-center gap-2">
-          <SubirGuiaButton loadId={load.id} onUploaded={refetch} />
+          <SubirGuiaButton loadId={load.id} onUploaded={() => { refetch(); setDocsKey((k) => k + 1) }} />
           <RowActions load={boardLoad} onDone={refetch} />
         </div>
       </div>
@@ -160,6 +163,8 @@ export function LoadDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <LoadDocumentsCard loadId={load.id} reloadKey={docsKey} />
     </div>
   )
 }
