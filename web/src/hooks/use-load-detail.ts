@@ -14,6 +14,7 @@ type DbStatus =
 export interface DetailLoad {
   id: string
   cliente: string
+  clienteId: string
   carga: string
   pesoKg: number
   origen: string
@@ -73,6 +74,7 @@ function toDetail(r: Record<string, unknown>): DetailLoad {
   return {
     id: r.id as string,
     cliente: client?.name ?? "—",
+    clienteId: r.client_id as string,
     carga: r.cargo_description as string,
     pesoKg: r.weight_kg as number,
     origen: r.origin as string,

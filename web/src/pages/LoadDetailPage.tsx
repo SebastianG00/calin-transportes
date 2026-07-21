@@ -4,6 +4,7 @@ import { ArrowLeftIcon, MessageCircleIcon, PackageCheckIcon } from "lucide-react
 import { format } from "date-fns"
 
 import { statusConfig } from "@/components/data-table"
+import { GuiaBuilderCard } from "@/components/guia-builder-card"
 import { RowActions } from "@/components/row-actions"
 import { SubirGuiaButton } from "@/components/subir-guia-button"
 import { LoadDocumentsCard } from "@/components/load-documents-card"
@@ -163,6 +164,8 @@ export function LoadDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <GuiaBuilderCard loadId={load.id} clientId={load.clienteId} />
 
       <LoadDocumentsCard loadId={load.id} reloadKey={docsKey} />
     </div>
