@@ -11,3 +11,7 @@ supabase/.temp
 design-references/
 .superpowers/
 docs/superpowers/
+
+# Stray in-place tsc output next to .ts sources (build uses outDir: dist) — never commit (see BUGS.md 2026-07-20)
+server/supabase/*.js
+server/supabase/*.d.ts

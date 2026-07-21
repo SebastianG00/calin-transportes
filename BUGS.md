@@ -4,6 +4,39 @@ A running log of non-obvious problems hit during development and how they were r
 
 ---
 
+## 2026-07-20 — `npm run build -w server` fails (TS6059) but `npm run test` is green (Spec 1)
+
+**Symptoms**
+- Full vitest suite passes (24 files / 69 tests green), but `npm run build -w server` fails:
+  `src/services/seedContent.test.ts(4,51): error TS6059: File '.../server/supabase/seed.ts'
+  is not under 'rootDir' 'server/src'`.
+- A moved test then failed to import `./seed.js` even after the path was correct.
+
+**Root cause**
+Two independent traps, both around `server/supabase/`:
+1. **tsc vs vitest disagree on `rootDir`.** `server/tsconfig.json` is `{ rootDir: "src", include: ["src"] }`.
+   A test placed **inside `src/`** that imports **outside `src/`** (`src/services/seedContent.test.ts`
+   → `../../supabase/seed.ts`) makes `tsc` pull a file outside `rootDir` into the build → TS6059.
+   **vitest never catches this** — it compiles per-file with esbuild and ignores `rootDir`. So a green
+   `npm run test` does NOT prove `npm run build` passes. The pre-existing `supabase/seed.test.ts` avoids
+   the trap by living in `supabase/` (outside `include: ["src"]`, so `tsc` skips it; vitest still runs it).
+2. **Stray in-place tsc output shadows source imports.** Loose `server/supabase/seed.js` + `seed.d.ts`
+   (compiled artifacts, NOT under `dist/`) were sitting next to `seed.ts`. Node/tsc resolved the stale
+   `./seed.js` instead of `seed.ts`. The build uses `outDir: dist`, so any `.js`/`.d.ts` next to a `.ts`
+   source in this (pure-TS) tree is always stray. `.gitignore`'s `dist/` does not catch in-place output.
+
+**Fix**
+- Put tests that import from `supabase/` **in `supabase/`** (next to `seed.test.ts`), not in `src/`.
+  Moved `seedContent.test.ts` → `server/supabase/seedContent.test.ts` and fixed its relative imports
+  (`../src/db/client.js`, `../src/testutils/db.js`, `./seed.js`).
+- Deleted the stray `server/supabase/seed.js` + `seed.d.ts`, and added a `.gitignore` guard
+  (`server/supabase/*.js`, `server/supabase/*.d.ts`) so in-place compiles can't be committed or shadow imports.
+
+**Rule to keep it fixed:** when finishing a server increment, run `npm run build -w server` (the `tsc`
+gate) — not just `npm run test`. vitest green ≠ tsc green.
+
+---
+
 ## 2026-07-19 — Dependency audit (during Slice 2) — drift & landmines
 
 Found while adding the delivery-pipeline libs. None were live bugs; recorded so they
