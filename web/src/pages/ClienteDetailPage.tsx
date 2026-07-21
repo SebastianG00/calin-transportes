@@ -208,7 +208,15 @@ export function ClienteDetailPage() {
               <Textarea placeholder="Texto de la cláusula" value={newClause.body} onChange={(e) => setNewClause({ ...newClause, body: e.target.value })} />
             </div>
             <div className="flex flex-col gap-2">
-              <Select value={newClause.bucket} onValueChange={(v) => setNewClause({ ...newClause, bucket: v as ClauseBucket })}>
+              <Select
+                items={[
+                  { value: "reconcile", label: "Reconciliar (datos)" },
+                  { value: "verify", label: "Verificar (foto)" },
+                  { value: "attest", label: "Atestiguar (checklist)" },
+                ]}
+                value={newClause.bucket}
+                onValueChange={(v) => setNewClause({ ...newClause, bucket: v as ClauseBucket })}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="reconcile">Reconciliar (datos)</SelectItem>
