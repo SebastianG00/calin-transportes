@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import { ClauseInput } from "@tp/types";
 import { listClauses, createClause, updateClause, deactivateClause } from "../db/clauses.js";
 import { draftClauses } from "../ai/requirements.js";
@@ -6,7 +7,16 @@ import { draftClauses } from "../ai/requirements.js";
 export const clausesRouter = Router();
 
 clausesRouter.get("/clauses", async (req, res, next) => {
-  try { res.json(await listClauses((req.query.clientId as string) || undefined)); } catch (e) { next(e); }
+  try {
+    const raw = req.query.clientId;
+    let clientId: string | undefined;
+    if (raw !== undefined && raw !== "") {
+      const parsed = z.string().uuid().safeParse(raw);
+      if (!parsed.success) return res.status(400).json({ code: "VALIDATION", message: "clientId inválido." });
+      clientId = parsed.data;
+    }
+    res.json(await listClauses(clientId));
+  } catch (e) { next(e); }
 });
 clausesRouter.post("/clauses/draft", async (req, res, next) => {
   try {
