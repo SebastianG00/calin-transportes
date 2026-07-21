@@ -4,6 +4,26 @@ A running log of non-obvious problems hit during development and how they were r
 
 ---
 
+## 2026-07-20 — `npm run dev -w server` crashes on boot (env not loaded)
+
+**Symptoms**
+- `PORT=8081 npm run dev -w server` exits immediately with a Zod config error:
+  `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` = `Required` / `undefined`.
+  Meanwhile `server/.env` clearly has those keys, and `npm run migrate`/`seed`/`test` work fine.
+
+**Root cause**
+The `dev` script was `tsx watch src/index.ts` — it never loaded `server/.env`. Only the
+`migrate`/`seed` scripts (`node --env-file=.env …`) and the vitest setup loaded env, so the
+long-running dev server was the one command that booted with an empty environment and failed
+`config.ts`'s `Env.parse(process.env)`.
+
+**Fix**
+Changed the dev script to load env explicitly (tsx passes Node's `--env-file` through):
+`"dev": "tsx watch --env-file=.env src/index.ts"`. `PORT` still comes from the inline shell
+var. Adding a real `ANTHROPIC_API_KEY` to `server/.env` and restarting now picks it up too.
+
+---
+
 ## 2026-07-20 — `npm run build -w server` fails (TS6059) but `npm run test` is green (Spec 1)
 
 **Symptoms**
