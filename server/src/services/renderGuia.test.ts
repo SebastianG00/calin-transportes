@@ -40,4 +40,25 @@ describe("renderGuiaHtml (pure)", () => {
   it("DEFAULT_GUIA_TEMPLATE contains the requisitos marker", () => {
     expect(DEFAULT_GUIA_TEMPLATE).toContain("{{requisitos}}");
   });
+
+  it("blank signature block present even with ZERO clauses", () => {
+    const html = renderGuiaHtml({ templateBody: "{{requisitos}}", data: {}, clauses: [] });
+    expect(html.toLowerCase()).toContain("firma");
+    expect(html.toLowerCase()).toContain("recepción");
+    expect(html.toLowerCase()).toContain("recibido");
+  });
+
+  it("HTML-escape covers all five special chars: &, <, >, \", '", () => {
+    const html = renderGuiaHtml({
+      templateBody: "{{x}} {{requisitos}}",
+      data: { x: "a & b \"c\" 'd' <e>" },
+      clauses: [],
+    });
+    expect(html).toContain("&amp;");
+    expect(html).toContain("&quot;");
+    expect(html).toContain("&#39;");
+    expect(html).toContain("&lt;");
+    expect(html).toContain("&gt;");
+    expect(html).not.toContain("<e>");
+  });
 });
