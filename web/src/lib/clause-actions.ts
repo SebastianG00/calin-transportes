@@ -31,3 +31,14 @@ export function updateClause(id: string, patch: Partial<ClauseInput>): Promise<C
 export function deleteClause(id: string): Promise<ClauseRow> {
   return apiFetch(`/api/clauses/${id}`, { method: "DELETE" })
 }
+
+export interface ClauseDraft {
+  title: string
+  body: string
+  bucket: ClauseBucket
+  params: Record<string, unknown>
+}
+
+export function draftClauses(prose: string): Promise<ClauseDraft[]> {
+  return apiFetch("/api/clauses/draft", { method: "POST", body: JSON.stringify({ prose }) })
+}

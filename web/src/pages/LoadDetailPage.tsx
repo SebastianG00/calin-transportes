@@ -8,6 +8,7 @@ import { GuiaBuilderCard } from "@/components/guia-builder-card"
 import { RowActions } from "@/components/row-actions"
 import { SubirGuiaButton } from "@/components/subir-guia-button"
 import { LoadDocumentsCard } from "@/components/load-documents-card"
+import { SummaryEmailCard } from "@/components/summary-email-card"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -166,6 +167,8 @@ export function LoadDetailPage() {
       </div>
 
       <GuiaBuilderCard loadId={load.id} clientId={load.clienteId} />
+
+      <SummaryEmailCard loadId={load.id} />
 
       <LoadDocumentsCard loadId={load.id} reloadKey={docsKey} />
     </div>

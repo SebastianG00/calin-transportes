@@ -13,6 +13,7 @@
     "create-bucket": "node --env-file=.env --import tsx supabase/create-bucket.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.4",
     "@supabase/supabase-js": "^2.45.0",
     "@tp/types": "*",
     "express": "^4.19.2",

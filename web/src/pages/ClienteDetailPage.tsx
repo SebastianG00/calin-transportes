@@ -15,7 +15,7 @@ import {
 import { useClientDetail } from "@/hooks/use-client-detail"
 import { updateClient } from "@/lib/client-actions"
 import { useClauses } from "@/hooks/use-clauses"
-import { createClause, deleteClause, type ClauseBucket } from "@/lib/clause-actions"
+import { createClause, deleteClause, draftClauses, type ClauseBucket, type ClauseDraft } from "@/lib/clause-actions"
 
 const BUCKET_LABEL: Record<ClauseBucket, string> = {
   reconcile: "Reconciliar (datos)",
@@ -42,6 +42,10 @@ export function ClienteDetailPage() {
     title: "", body: "", bucket: "attest",
   })
   const [adding, setAdding] = useState(false)
+
+  const [prose, setProse] = useState("")
+  const [drafts, setDrafts] = useState<ClauseDraft[]>([])
+  const [drafting, setDrafting] = useState(false)
 
   if (loading) return <div className="px-6 py-10 text-sm text-muted-foreground">Cargando cliente…</div>
   if (error || !client) {
@@ -97,6 +101,27 @@ export function ClienteDetailPage() {
     }
   }
 
+  async function onDraft() {
+    if (!prose.trim()) return
+    setDrafting(true)
+    try {
+      setDrafts(await draftClauses(prose))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo redactar con IA.")
+    } finally { setDrafting(false) }
+  }
+  async function saveDraft(d: ClauseDraft) {
+    if (!id) return
+    try {
+      await createClause({ client_id: id, title: d.title, body: d.body, bucket: d.bucket, params: d.params, source: "ai" })
+      setDrafts((prev) => prev.filter((x) => x !== d))
+      toast.success("Cláusula guardada")
+      clauses.refetch()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo guardar.")
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 px-4 py-6 lg:px-6">
       <Link to="/clientes" className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -131,6 +156,27 @@ export function ClienteDetailPage() {
       <Card>
         <CardHeader><CardTitle>Requisitos (cláusulas)</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
+            <p className="text-sm font-medium">Redactar requisitos con IA</p>
+            <Textarea
+              placeholder="Pega los requisitos del cliente en prosa…"
+              value={prose}
+              onChange={(e) => setProse(e.target.value)}
+            />
+            <Button variant="secondary" className="w-fit" onClick={onDraft} disabled={drafting}>
+              {drafting ? "Redactando…" : "Redactar con IA"}
+            </Button>
+            {drafts.map((d, i) => (
+              <div key={i} className="flex items-start justify-between gap-3 rounded-md bg-muted/50 p-2">
+                <div>
+                  <span className="font-medium">{d.title}</span>{" "}
+                  <Badge variant="outline">{BUCKET_LABEL[d.bucket]}</Badge>
+                  <p className="text-sm text-muted-foreground">{d.body}</p>
+                </div>
+                <Button size="sm" onClick={() => saveDraft(d)}>Guardar</Button>
+              </div>
+            ))}
+          </div>
           {clauses.loading ? (
             <p className="text-sm text-muted-foreground">Cargando…</p>
           ) : clauses.clauses.length ? (
