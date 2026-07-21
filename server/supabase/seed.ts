@@ -1,5 +1,6 @@
 import { isValidRuc } from "@tp/types";
 import { getServiceClient } from "../src/db/client.js";
+import { DEFAULT_GUIA_TEMPLATE } from "../src/services/renderGuia.js";
 
 export interface SeedClientRow {
   name: string;
@@ -22,6 +23,38 @@ export function parseSeedClients(rows: SeedClientRow[]): SeedClientRow[] {
     }
   }
   return rows;
+}
+
+export const SEED_CLAUSES = [
+  { title: "Camión limpio y sin olores", body: "El vehículo debe llegar limpio, seco y sin olores que afecten la carga.", bucket: "attest" },
+  { title: "Chofer con EPP", body: "El conductor debe portar casco, chaleco y zapatos de seguridad durante la maniobra.", bucket: "attest" },
+  { title: "Peso dentro del límite", body: "El peso transportado no debe exceder el límite acordado para la unidad.", bucket: "reconcile" },
+  { title: "Firma del receptor", body: "La guía debe retornar firmada por quien recibe la mercadería.", bucket: "verify" },
+];
+
+export async function seedDocumentContent() {
+  const db = getServiceClient();
+
+  // Default guía template (client_id null). Idempotent by (kind, client_id null, name).
+  const existingTpl = await db.from("document_templates").select("id")
+    .eq("kind", "guia").is("client_id", null).eq("name", "Guía por defecto").maybeSingle();
+  if (!existingTpl.data) {
+    const { error } = await db.from("document_templates")
+      .insert({ client_id: null, kind: "guia", name: "Guía por defecto", body: DEFAULT_GUIA_TEMPLATE });
+    if (error) throw error;
+  }
+
+  // Global clauses (client_id null). Idempotent by (title, client_id null).
+  for (const c of SEED_CLAUSES) {
+    const existing = await db.from("requirement_clauses").select("id")
+      .is("client_id", null).eq("title", c.title).maybeSingle();
+    if (existing.error) throw existing.error;
+    if (!existing.data) {
+      const { error } = await db.from("requirement_clauses")
+        .insert({ client_id: null, title: c.title, body: c.body, bucket: c.bucket, source: "human" });
+      if (error) throw error;
+    }
+  }
 }
 
 async function main() {
@@ -63,6 +96,9 @@ async function main() {
   }
 
   console.log(`Seeded ${rows.length} clients.`);
+
+  await seedDocumentContent();
+  console.log(`Seeded ${SEED_CLAUSES.length} global clauses + default guía template.`);
 }
 
 // Run only when invoked directly (not when imported by the test).
