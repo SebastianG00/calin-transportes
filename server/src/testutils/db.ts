@@ -2,6 +2,10 @@ import { getServiceClient } from "../db/client.js";
 
 export async function resetDb() {
   const db = getServiceClient();
+  await db.from("delivery_emails").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await db.from("delivery_guias").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await db.from("document_templates").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await db.from("requirement_clauses").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   // document_events → load_documents must go first: both FK-reference
   // messages/loads and would otherwise block their deletion below.
   await db.from("document_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
