@@ -6,6 +6,7 @@ import { SessionProvider } from "@/lib/auth"
 import { AppLayout } from "@/layouts/AppLayout"
 import { BoardPage } from "@/pages/BoardPage"
 import { CalendarioPage } from "@/pages/CalendarioPage"
+import { ClienteDetailPage } from "@/pages/ClienteDetailPage"
 import { ClientesPage } from "@/pages/ClientesPage"
 import { ConductorDetailPage } from "@/pages/ConductorDetailPage"
 import { ConductoresPage } from "@/pages/ConductoresPage"
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
           { path: "unidades", element: <UnidadesPage /> },
           { path: "unidades/:id", element: <UnidadDetailPage /> },
           { path: "clientes", element: <ClientesPage /> },
+          { path: "clientes/:id", element: <ClienteDetailPage /> },
           { path: "revision", element: <RevisionPage /> },
           { path: "revision/:id", element: <RevisionDetailPage /> },
           { path: "calendario", element: <CalendarioPage /> },

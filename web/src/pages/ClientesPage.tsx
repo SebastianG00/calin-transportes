@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"
+
 import {
   Card,
   CardContent,
@@ -24,7 +26,7 @@ export function ClientesPage() {
         <CardHeader>
           <CardTitle>Clientes</CardTitle>
           <CardDescription>
-            Clientes registrados. La edición llega en una fase posterior.
+            Selecciona un cliente para editar su contacto y requisitos.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -53,7 +55,11 @@ export function ClientesPage() {
                 ) : clients.length ? (
                   clients.map((client) => (
                     <TableRow key={client.id}>
-                      <TableCell className="font-medium">{client.nombre}</TableCell>
+                      <TableCell className="font-medium">
+                        <Link to={`/clientes/${client.id}`} className="hover:underline">
+                          {client.nombre}
+                        </Link>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {client.ruc}
                       </TableCell>
