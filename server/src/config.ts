@@ -16,6 +16,10 @@ const Env = z.object({
   // .env ships this key present-but-empty until a real deploy URL exists;
   // treat "" the same as unset rather than failing url() validation.
   PUBLIC_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
+  // AI (Spec 1). Ships present-but-empty until a real key exists; AI endpoints
+  // return 503 AI_UNCONFIGURED when unset. Boots fine without it (like Twilio).
+  ANTHROPIC_API_KEY: z.string().default(""),
+  CLAUDE_MODEL: z.string().default("claude-opus-4-8"),
 });
 
 export const config = Env.parse(process.env);
