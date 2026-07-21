@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { getServiceClient } from "../db/client.js";
-import { resetDb } from "../testutils/db.js";
-import { seedDocumentContent, SEED_CLAUSES } from "../../supabase/seed.js";
+import { getServiceClient } from "../src/db/client.js";
+import { resetDb } from "../src/testutils/db.js";
+import { seedDocumentContent, SEED_CLAUSES } from "./seed.js";
 
 describe("seedDocumentContent", () => {
   beforeEach(async () => { await resetDb(); });
