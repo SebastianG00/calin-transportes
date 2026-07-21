@@ -11,6 +11,7 @@ import { ClientesPage } from "@/pages/ClientesPage"
 import { ConductorDetailPage } from "@/pages/ConductorDetailPage"
 import { ConductoresPage } from "@/pages/ConductoresPage"
 import { FacturasPage } from "@/pages/FacturasPage"
+import { GuiaPrintPage } from "@/pages/GuiaPrintPage"
 import { InventarioPage } from "@/pages/InventarioPage"
 import { LoadDetailPage } from "@/pages/LoadDetailPage"
 import { LoginPage } from "@/pages/LoginPage"
@@ -51,6 +52,10 @@ const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [{ path: "/guias/:id/print", element: <GuiaPrintPage /> }],
   },
 ])
 
