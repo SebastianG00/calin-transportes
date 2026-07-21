@@ -4,6 +4,7 @@ import { errorHandler } from "./errorHandler.js";
 import { documentsRouter } from "./documents.routes.js";
 import { clausesRouter } from "./clauses.routes.js";
 import { clientsRouter } from "./clients.routes.js";
+import { guiasRouter } from "./guias.routes.js";
 import { loadsRouter } from "./loads.routes.js";
 import { masterDataRouter } from "./masterData.routes.js";
 import { webhookRouter } from "./webhook.routes.js";
@@ -19,6 +20,7 @@ export function createApp() {
   app.use("/api", requireAuth, documentsRouter);   // /api/loads/:id/documents, /api/documents*
   app.use("/api", requireAuth, clausesRouter);      // /api/clauses*
   app.use("/api", requireAuth, clientsRouter);       // /api/clients*
+  app.use("/api", requireAuth, guiasRouter);         // /api/loads/:id/guias, /api/guias*
   app.use(errorHandler);
   return app;
 }
