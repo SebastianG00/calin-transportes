@@ -1,6 +1,10 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 type Box = [number, number, number, number]
+
+type ContainScale = { s: number; offsetX: number; offsetY: number }
+
+const IDENTITY_SCALE: ContainScale = { s: 1, offsetX: 0, offsetY: 0 }
 
 export function GuiaOverlay({
   photoUrl, boxes, activeField,
@@ -10,13 +14,21 @@ export function GuiaOverlay({
   activeField: string | null
 }) {
   const imgRef = useRef<HTMLImageElement>(null)
-  const [scale, setScale] = useState<{ sx: number; sy: number }>({ sx: 1, sy: 1 })
+  const [scale, setScale] = useState<ContainScale>(IDENTITY_SCALE)
 
-  function onLoad() {
+  function computeScale() {
     const img = imgRef.current
     if (!img || !img.naturalWidth) return
-    setScale({ sx: img.clientWidth / img.naturalWidth, sy: img.clientHeight / img.naturalHeight })
+    const s = Math.min(img.clientWidth / img.naturalWidth, img.clientHeight / img.naturalHeight)
+    const offsetX = (img.clientWidth - img.naturalWidth * s) / 2
+    const offsetY = (img.clientHeight - img.naturalHeight * s) / 2
+    setScale({ s, offsetX, offsetY })
   }
+
+  useEffect(() => {
+    window.addEventListener("resize", computeScale)
+    return () => window.removeEventListener("resize", computeScale)
+  }, [])
 
   if (!photoUrl) return <p className="text-sm text-muted-foreground">Sin imagen.</p>
 
@@ -26,7 +38,7 @@ export function GuiaOverlay({
         ref={imgRef}
         src={photoUrl}
         alt="Guía"
-        onLoad={onLoad}
+        onLoad={computeScale}
         className="max-h-[520px] w-full rounded-md object-contain"
       />
       {Object.entries(boxes).map(([field, b]) =>
@@ -38,10 +50,10 @@ export function GuiaOverlay({
               (field === activeField ? "border-amber-500 bg-amber-400/20" : "border-sky-500/50")
             }
             style={{
-              left: b[0] * scale.sx,
-              top: b[1] * scale.sy,
-              width: b[2] * scale.sx,
-              height: b[3] * scale.sy,
+              left: scale.offsetX + b[0] * scale.s,
+              top: scale.offsetY + b[1] * scale.s,
+              width: b[2] * scale.s,
+              height: b[3] * scale.s,
             }}
           />
         ) : null,

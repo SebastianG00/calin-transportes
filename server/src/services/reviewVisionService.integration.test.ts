@@ -26,6 +26,7 @@ vi.mock("../pipeline/ocr.js", () => ({
 import { getServiceClient } from "../db/client.js";
 import { resetDb, seedClient, seedDriver, seedUnit } from "../testutils/db.js";
 import { extractDocument } from "./reviewVisionService.js";
+import { DomainError } from "../domain/errors.js";
 
 describe("reviewVisionService.extractDocument", () => {
   beforeEach(async () => { await resetDb(); });
@@ -65,5 +66,37 @@ describe("reviewVisionService.extractDocument", () => {
     // audit event written
     const { data: events } = await db.from("document_events").select("kind").eq("document_id", doc!.id);
     expect((events ?? []).some((e) => e.kind === "vlm_extracted")).toBe(true);
+  });
+
+  it("refuses to re-extract an already-reviewed document (guards human corrections)", async () => {
+    const db = getServiceClient();
+    const clientId = await seedClient();
+    const driverId = await seedDriver();
+    const unitId = await seedUnit();
+    const { data: load } = await db.from("loads").insert({
+      client_id: clientId, cargo_description: "Lápices", weight_kg: 8900, origin: "Lima",
+      destination: "Arequipa", scheduled_date: "2026-08-01", price: 3500, currency: "PEN",
+      status: "en_route", assigned_driver_id: driverId, assigned_unit_id: unitId,
+    }).select().single();
+    const path = `uploads/${load!.id}/mock.png`;
+    await db.storage.from("guias").upload(path, Buffer.from("fake"), { contentType: "image/png" });
+    const { data: msg } = await db.from("messages").insert({
+      provider: "office", provider_message_sid: `office-${Date.now()}`, direction: "in",
+      load_id: load!.id, media_storage_path: path, processed: true, body: "foto",
+    } as never).select().single();
+    const { data: doc } = await db.from("load_documents").insert({
+      load_id: load!.id, message_id: (msg as { id: string }).id, doc_type: "gre_remitente",
+      extracted: { peso: { value: "9000", source: "human", checks: [] } }, validation: {},
+      review_status: "rejected",
+    }).select().single();
+
+    await expect(extractDocument(doc!.id)).rejects.toMatchObject({
+      status: 409, code: "NOT_PENDING",
+    });
+    await expect(extractDocument(doc!.id)).rejects.toBeInstanceOf(DomainError);
+
+    // Human-corrected `extracted` must remain untouched (no clobbering).
+    const { data: after } = await db.from("load_documents").select("extracted").eq("id", doc!.id).single();
+    expect((after!.extracted as Record<string, { value: string }>).peso.value).toBe("9000");
   });
 });
