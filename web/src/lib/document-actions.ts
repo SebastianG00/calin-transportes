@@ -71,3 +71,16 @@ export interface LoadDocument {
 export function fetchLoadDocuments(loadId: string): Promise<LoadDocument[]> {
   return apiFetch(`/api/loads/${loadId}/documents`)
 }
+
+export interface ExtractedField { value: string; verbatim?: string; source: "qr" | "vlm" | "human"; bbox?: [number, number, number, number] | null; checks: string[] }
+export interface VerifyClauseCheck { title: string; body: string; finding: "firma" | "sello" | "none"; present: boolean }
+export interface EnrichedDetail {
+  document: DocumentRow & { extracted: Record<string, ExtractedField> }
+  load: Record<string, unknown>
+  photoUrl: string | null
+  verifyClauses: VerifyClauseCheck[]
+}
+
+export function extractDocument(id: string): Promise<EnrichedDetail> {
+  return apiFetch(`/api/documents/${id}/extract`, { method: "POST" })
+}
