@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { getServiceClient } from "../db/client.js";
 import * as svc from "../services/documentService.js";
+import { extractDocument } from "../services/reviewVisionService.js";
 
 export const documentsRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
@@ -45,4 +46,8 @@ documentsRouter.post("/documents/:id/confirm", async (req, res, next) => {
 
 documentsRouter.post("/documents/:id/reject", async (req, res, next) => {
   try { res.json(await svc.rejectDocument(req.params.id, req.body?.reason ?? "", req.userId!)); } catch (e) { next(e); }
+});
+
+documentsRouter.post("/documents/:id/extract", async (req, res, next) => {
+  try { res.json(await extractDocument(req.params.id)); } catch (e) { next(e); }
 });
