@@ -44,3 +44,13 @@ export async function getGuiaTemplate(clientId: string) {
     .eq("kind", "guia").is("client_id", null).limit(1).maybeSingle();
   return def.data ?? null;
 }
+
+/** verify-bucket clauses from the load's most recent approved pre-trip guía. */
+export async function getApprovedVerifyClauses(loadId: string): Promise<Array<{ title: string; body: string }>> {
+  const { data } = await getServiceClient()
+    .from("delivery_guias").select("clauses")
+    .eq("load_id", loadId).eq("status", "approved")
+    .order("approved_at", { ascending: false }).limit(1).maybeSingle();
+  const clauses = ((data?.clauses ?? []) as Array<{ title: string; body: string; bucket: string }>);
+  return clauses.filter((c) => c.bucket === "verify").map((c) => ({ title: c.title, body: c.body }));
+}
