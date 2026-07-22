@@ -4,6 +4,7 @@ import { getApprovedVerifyClauses } from "../db/guias.js";
 import { extractGuia, TEXT_FIELDS } from "../ai/guiaVision.js";
 import { ocrWordBoxes, groundFields } from "../pipeline/ocr.js";
 import { reconcileGuiaWithLoad, composeValidation, type Check } from "../pipeline/validate.js";
+import { DomainError } from "../domain/errors.js";
 
 const EXT_MIME: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg" };
 
@@ -15,6 +16,9 @@ export interface EnrichedDetail {
 
 export async function extractDocument(docId: string): Promise<EnrichedDetail> {
   const doc = await getDocument(docId);
+  if (doc.review_status !== "pending") {
+    throw new DomainError(409, "NOT_PENDING", "Este documento ya fue revisado.");
+  }
   const db = getServiceClient();
 
   // Load the stored photo bytes (mirror pipeline.ts).
