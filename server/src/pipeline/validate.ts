@@ -99,7 +99,21 @@ export interface GuiaLoadFacts {
 export const PESO_TOLERANCE_FRAC = 0.1;
 
 function normPlate(s: string): string { return s.toUpperCase().replace(/[\s-]/g, ""); }
-function normText(s: string): string { return s.toLowerCase().replace(/[\s.,-]/g, ""); }
+function stripAccents(s: string): string { return s.normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+function normText(s: string): string { return stripAccents(s.toLowerCase()).replace(/[\s.,-]/g, ""); }
+
+/** Parse a peso string that may carry a unit ("8900 kg") or thousands/decimal
+ *  separators ("8,900", "8.900", "8,900.00") into kilograms. Returns NaN when
+ *  there's no parseable number. */
+function parsePeso(raw: string): number {
+  const s = raw
+    .toLowerCase()
+    .replace(/kgs?\.?/g, "")   // strip unit
+    .replace(/\s/g, "")        // strip spaces (incl. "8 900")
+    .replace(/[.,]\d{1,2}$/, "") // drop a trailing 1-2 digit decimal group
+    .replace(/[.,]/g, "");     // remaining separators are thousands
+  return s === "" ? NaN : Number(s);
+}
 
 /** Reconcile VLM-read guía fields against the load. Blank fields are skipped
  *  (pass) — there's nothing to reconcile. Never mutates. */
@@ -109,7 +123,7 @@ export function reconcileGuiaWithLoad(
 ): Check[] {
   const checks: Check[] = [];
 
-  const peso = Number(fields.peso);
+  const peso = parsePeso(fields.peso ?? "");
   if (fields.peso && Number.isFinite(peso)) {
     const ok = Math.abs(peso - load.weightKg) <= load.weightKg * PESO_TOLERANCE_FRAC;
     checks.push({ field: "peso", pass: ok, reason_code: ok ? "PESO_OK" : "PESO_MISMATCH",

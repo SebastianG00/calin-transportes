@@ -10,7 +10,7 @@ import {
 } from "@/lib/loads"
 
 const SELECT =
-  "*, client:clients(name), driver:drivers(name), unit:units(plate)"
+  "*, client:clients(name), driver:drivers(name), unit:units(plate), documents:load_documents(review_status, validation, confirmed_at, created_at)"
 
 export function useLoads(): {
   loads: BoardLoad[]
@@ -47,6 +47,13 @@ export function useLoads(): {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "loads" },
+        () => {
+          fetchLoads()
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "load_documents" },
         () => {
           fetchLoads()
         },

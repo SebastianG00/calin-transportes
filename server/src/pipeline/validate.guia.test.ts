@@ -29,4 +29,29 @@ describe("reconcileGuiaWithLoad (pure)", () => {
     const checks = reconcileGuiaWithLoad({ peso: "", destino: "", fecha_entrega: "", placa: "" }, load);
     expect(checks.every((c) => c.pass)).toBe(true);
   });
+
+  it("destino matches across accents (Peruvian place names)", () => {
+    const accented = { ...load, destination: "Cañete" };
+    const checks = reconcileGuiaWithLoad(
+      { peso: "8900", destino: "Canete", fecha_entrega: "2026-08-01", placa: "ABC-123" }, accented);
+    expect(checks.find((c) => c.field === "destino")!.pass).toBe(true);
+  });
+
+  it("peso parses thousands separators and unit suffixes", () => {
+    for (const peso of ["8,900", "8.900", "8900 kg", "8 900", "8,900.00"]) {
+      const checks = reconcileGuiaWithLoad(
+        { peso, destino: "Arequipa", fecha_entrega: "2026-08-01", placa: "ABC-123" }, load);
+      const c = checks.find((x) => x.field === "peso");
+      expect(c, `peso "${peso}" should be reconciled, not skipped`).toBeDefined();
+      expect(c!.pass, `peso "${peso}" should pass`).toBe(true);
+    }
+  });
+
+  it("a formatted peso that truly differs still flags (not silently skipped)", () => {
+    const checks = reconcileGuiaWithLoad(
+      { peso: "5,000 kg", destino: "Arequipa", fecha_entrega: "2026-08-01", placa: "ABC-123" }, load);
+    const c = checks.find((x) => x.field === "peso");
+    expect(c).toBeDefined();
+    expect(c!.reason_code).toBe("PESO_MISMATCH");
+  });
 });
