@@ -1,4 +1,4 @@
-import { InfoIcon, MapIcon } from "lucide-react"
+import { InfoIcon } from "lucide-react"
 
 import {
   Card,
@@ -7,22 +7,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-
-// City-level distribution (mock) — not GPS tracking.
-const destinos = [
-  { ciudad: "Arequipa", cargas: 6 },
-  { ciudad: "Cusco", cargas: 4 },
-  { ciudad: "Trujillo", cargas: 3 },
-  { ciudad: "Huancayo", cargas: 2 },
-  { ciudad: "Piura", cargas: 2 },
-  { ciudad: "Tacna", cargas: 2 },
-  { ciudad: "Ica", cargas: 1 },
-  { ciudad: "Chincha", cargas: 1 },
-]
-
-const maxCargas = Math.max(...destinos.map((d) => d.cargas))
+import { PeruMap } from "@/components/peru-map"
+import { useLoads } from "@/hooks/use-loads"
+import { cityDistribution } from "@/lib/map-distribution"
 
 export function MapaPage() {
+  const { loads, loading, error } = useLoads()
+
+  if (loading) return <div className="px-6 py-10 text-sm text-muted-foreground">Cargando mapa…</div>
+  if (error) return <div className="px-6 py-10 text-sm text-red-600">{error}</div>
+
+  const destinos = cityDistribution(loads.map((l) => ({ destino: l.destino })))
+  const maxCargas = destinos[0]?.cargas ?? 1
+  const totalCargas = destinos.reduce((sum, d) => sum + d.cargas, 0)
+
   return (
     <div className="flex flex-col gap-4 px-4 py-2 lg:px-6">
       <div className="flex flex-col gap-1">
@@ -40,9 +38,9 @@ export function MapaPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-3">
-        <StatCard label="Destinos activos" value="8" />
-        <StatCard label="Ciudad principal" value="Arequipa" />
-        <StatCard label="Cargas en ruta" value="1" />
+        <StatCard label="Destinos activos" value={String(destinos.length)} />
+        <StatCard label="Ciudad principal" value={destinos[0]?.ciudad ?? "—"} />
+        <StatCard label="Total de cargas" value={String(totalCargas)} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 @4xl/main:grid-cols-2">
@@ -52,38 +50,37 @@ export function MapaPage() {
             <CardDescription>Distribución por ciudad de entrega</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {destinos.map((destino) => (
-              <div key={destino.ciudad} className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{destino.ciudad}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {destino.cargas}
-                  </span>
+            {destinos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aún no hay cargas con destino.</p>
+            ) : (
+              destinos.map((destino) => (
+                <div key={destino.ciudad} className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{destino.ciudad}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {destino.cargas}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary/70"
+                      style={{ width: `${(destino.cargas / maxCargas) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary/70"
-                    style={{
-                      width: `${(destino.cargas / maxCargas) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Mapa geográfico</CardTitle>
-            <CardDescription>Vista espacial de destinos</CardDescription>
+            <CardDescription>Destinos por ciudad · tamaño = nº de cargas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 text-center text-muted-foreground">
-              <MapIcon className="size-8" />
-              <span className="text-sm font-medium">
-                Mapa geográfico — próximamente
-              </span>
+            <div className="mx-auto aspect-[300/430] max-h-[420px]">
+              <PeruMap data={destinos} />
             </div>
           </CardContent>
         </Card>
