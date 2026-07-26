@@ -49,7 +49,19 @@ export function LoadDocumentsCard({ loadId, reloadKey }: { loadId: string; reloa
             {docs.map((d) => (
               <div key={d.id} className="flex gap-3 rounded-md border p-2">
                 {d.photoUrl ? (
-                  <img src={d.photoUrl} alt="Guía" className="size-20 shrink-0 rounded object-cover" />
+                  <a
+                    href={d.photoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Ver foto completa"
+                    className="shrink-0"
+                  >
+                    <img
+                      src={d.photoUrl}
+                      alt="Guía"
+                      className="size-20 rounded object-cover transition-opacity hover:opacity-80"
+                    />
+                  </a>
                 ) : (
                   <div className="flex size-20 shrink-0 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
                     sin foto
@@ -72,6 +84,23 @@ export function LoadDocumentsCard({ loadId, reloadKey }: { loadId: string; reloa
                     <span className="text-xs text-muted-foreground">
                       Confirmado {format(new Date(d.confirmed_at), "dd/MM/yyyy HH:mm")}
                     </span>
+                  )}
+                  {(d.validation?.flags?.length ?? 0) > 0 && (
+                    <div className="flex flex-col gap-0.5 pt-0.5">
+                      {d.validation.flags.map((f, i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            "text-xs",
+                            d.validation.overall === "red"
+                              ? "text-red-700 dark:text-red-400"
+                              : "text-amber-700 dark:text-amber-400",
+                          )}
+                        >
+                          ⚠ {f.message}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>

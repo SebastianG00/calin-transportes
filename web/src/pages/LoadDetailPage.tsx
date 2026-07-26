@@ -58,6 +58,7 @@ export function LoadDetailPage() {
     unidad: load.unidad,
     estado: load.estado,
     confirmacion: "",
+    entrega: { label: "—", tone: "muted" },
     precio: load.precio,
   }
 
