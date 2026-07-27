@@ -10,6 +10,7 @@ import {
   SearchIcon,
   TrendingUpIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -49,14 +50,18 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { ApiError } from "@/lib/api"
+import { deleteTask, updateTask } from "@/lib/task-actions"
+import { useTasks } from "@/hooks/use-tasks"
+import { TareaSheet } from "@/components/tarea-sheet"
 import {
   estadoConfig,
   prioridadConfig,
-  tareas,
+  type Tarea,
   type TareaCategoria,
   type TareaEstado,
   type TareaPrioridad,
-} from "@/data/tareas"
+} from "@/lib/tareas"
 
 const estadoFilterItems: { label: string; value: TareaEstado | "todos" }[] = [
   { label: "Todos", value: "todos" },
@@ -96,6 +101,10 @@ const estadoIcon: Record<
   pendiente: { icon: Clock, className: "text-muted-foreground" },
 }
 
+const estadoSelectItems: { value: TareaEstado; label: string }[] = (
+  Object.entries(estadoConfig) as [TareaEstado, { label: string }][]
+).map(([value, cfg]) => ({ value, label: cfg.label }))
+
 interface ColumnVisibility {
   categoria: boolean
   estado: boolean
@@ -109,6 +118,7 @@ const columnLabels: Record<keyof ColumnVisibility, string> = {
 }
 
 export function TareasPage() {
+  const { tasks, loading, error, refetch } = useTasks()
   const [search, setSearch] = React.useState("")
   const [estadoFilter, setEstadoFilter] = React.useState<
     TareaEstado | "todos"
@@ -119,16 +129,18 @@ export function TareasPage() {
   const [prioridadFilter, setPrioridadFilter] = React.useState<
     TareaPrioridad | "todas"
   >("todas")
-  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set())
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
   const [columns, setColumns] = React.useState<ColumnVisibility>({
     categoria: true,
     estado: true,
     prioridad: true,
   })
+  const [editing, setEditing] = React.useState<Tarea | null>(null)
+  const [busyId, setBusyId] = React.useState<string | null>(null)
 
   const filteredTareas = React.useMemo(() => {
     const query = search.trim().toLowerCase()
-    return tareas.filter((tarea) => {
+    return tasks.filter((tarea) => {
       const matchesEstado =
         estadoFilter === "todos" || tarea.estado === estadoFilter
       const matchesCategoria =
@@ -136,14 +148,17 @@ export function TareasPage() {
       const matchesPrioridad =
         prioridadFilter === "todas" || tarea.prioridad === prioridadFilter
       const matchesSearch =
-        query.length === 0 ||
-        tarea.titulo.toLowerCase().includes(query) ||
-        tarea.codigo.toLowerCase().includes(query)
+        query.length === 0 || tarea.titulo.toLowerCase().includes(query)
       return (
         matchesEstado && matchesCategoria && matchesPrioridad && matchesSearch
       )
     })
-  }, [search, estadoFilter, categoriaFilter, prioridadFilter])
+  }, [tasks, search, estadoFilter, categoriaFilter, prioridadFilter])
+
+  const total = tasks.length
+  const hechas = tasks.filter((t) => t.estado === "hecho").length
+  const enProceso = tasks.filter((t) => t.estado === "en_proceso").length
+  const pendientes = tasks.filter((t) => t.estado === "pendiente").length
 
   const allSelected =
     filteredTareas.length > 0 &&
@@ -160,13 +175,61 @@ export function TareasPage() {
     })
   }
 
-  function toggleRow(id: number, checked: boolean) {
+  function toggleRow(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (checked) next.add(id)
       else next.delete(id)
       return next
     })
+  }
+
+  async function handleEstadoChange(id: string, estado: TareaEstado) {
+    setBusyId(id)
+    try {
+      await updateTask(id, { estado })
+      toast.success("Estado actualizado.")
+      refetch()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "No se pudo actualizar el estado."
+      )
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleDelete(tarea: Tarea) {
+    if (
+      !window.confirm(
+        `¿Eliminar la tarea "${tarea.titulo}"? Esta acción no se puede deshacer.`
+      )
+    ) {
+      return
+    }
+    setBusyId(tarea.id)
+    try {
+      await deleteTask(tarea.id)
+      toast.success("Tarea eliminada.")
+      refetch()
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError ? err.message : "No se pudo eliminar la tarea."
+      )
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="px-6 py-10 text-sm text-muted-foreground">
+        Cargando tareas…
+      </div>
+    )
+  }
+  if (error) {
+    return <div className="px-6 py-10 text-sm text-red-600">{error}</div>
   }
 
   return (
@@ -183,12 +246,12 @@ export function TareasPage() {
           <CardHeader>
             <CardDescription>Total tareas</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              24
+              {total}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
                 <TrendingUpIcon />
-                +22%
+                Vivo
               </Badge>
             </CardAction>
           </CardHeader>
@@ -202,7 +265,7 @@ export function TareasPage() {
           <CardHeader>
             <CardDescription>Completadas</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              9
+              {hechas}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
@@ -213,7 +276,7 @@ export function TareasPage() {
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
             <div className="line-clamp-1 text-muted-foreground">
-              cerradas esta semana
+              tareas cerradas
             </div>
           </CardFooter>
         </Card>
@@ -221,7 +284,7 @@ export function TareasPage() {
           <CardHeader>
             <CardDescription>En proceso</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              7
+              {enProceso}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
@@ -240,12 +303,12 @@ export function TareasPage() {
           <CardHeader>
             <CardDescription>Pendientes</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              8
+              {pendientes}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                <TrendingUpIcon />
-                +26%
+                <Clock />
+                Por comenzar
               </Badge>
             </CardAction>
           </CardHeader>
@@ -354,10 +417,16 @@ export function TareasPage() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button size="sm">
-                <PlusIcon />
-                Nueva tarea
-              </Button>
+              <TareaSheet
+                mode="create"
+                onDone={refetch}
+                trigger={
+                  <Button size="sm">
+                    <PlusIcon />
+                    Nueva tarea
+                  </Button>
+                }
+              />
             </div>
           </div>
 
@@ -372,7 +441,6 @@ export function TareasPage() {
                       aria-label="Seleccionar todos"
                     />
                   </TableHead>
-                  <TableHead>Tarea</TableHead>
                   <TableHead>Título</TableHead>
                   {columns.categoria && <TableHead>Categoría</TableHead>}
                   {columns.estado && <TableHead>Estado</TableHead>}
@@ -383,10 +451,10 @@ export function TareasPage() {
               <TableBody>
                 {filteredTareas.length ? (
                   filteredTareas.map((tarea) => {
-                    const estado = estadoConfig[tarea.estado]
                     const estadoIconEntry = estadoIcon[tarea.estado]
                     const EstadoIcon = estadoIconEntry.icon
                     const prioridad = prioridadConfig[tarea.prioridad]
+                    const rowBusy = busyId === tarea.id
                     return (
                       <TableRow key={tarea.id}>
                         <TableCell>
@@ -395,11 +463,8 @@ export function TareasPage() {
                             onCheckedChange={(value) =>
                               toggleRow(tarea.id, !!value)
                             }
-                            aria-label={`Seleccionar ${tarea.codigo}`}
+                            aria-label={`Seleccionar ${tarea.titulo}`}
                           />
-                        </TableCell>
-                        <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">
-                          {tarea.codigo}
                         </TableCell>
                         <TableCell className="font-medium">
                           {tarea.titulo}
@@ -416,15 +481,38 @@ export function TareasPage() {
                         )}
                         {columns.estado && (
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <EstadoIcon
-                                className={cn(
-                                  "size-4",
-                                  estadoIconEntry.className
-                                )}
-                              />
-                              <span>{estado.label}</span>
-                            </div>
+                            <Select
+                              value={tarea.estado}
+                              onValueChange={(value) =>
+                                handleEstadoChange(
+                                  tarea.id,
+                                  value as TareaEstado
+                                )
+                              }
+                              items={estadoSelectItems}
+                            >
+                              <SelectTrigger
+                                size="sm"
+                                disabled={rowBusy}
+                                aria-label={`Cambiar estado de ${tarea.titulo}`}
+                                className="w-auto min-w-36 border-none bg-transparent shadow-none"
+                              >
+                                <EstadoIcon
+                                  className={cn(
+                                    "size-4",
+                                    estadoIconEntry.className
+                                  )}
+                                />
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {estadoSelectItems.map((item) => (
+                                  <SelectItem key={item.value} value={item.value}>
+                                    {item.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                         )}
                         {columns.prioridad && (
@@ -446,6 +534,7 @@ export function TareasPage() {
                                     variant="ghost"
                                     size="icon"
                                     className="size-8 text-muted-foreground data-open:bg-muted"
+                                    disabled={rowBusy}
                                   />
                                 }
                               >
@@ -453,12 +542,26 @@ export function TareasPage() {
                                 <span className="sr-only">Abrir menú</span>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-44">
-                                <DropdownMenuItem>Editar</DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setEditing(tarea)}
+                                >
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={tarea.estado === "hecho"}
+                                  onClick={() =>
+                                    handleEstadoChange(tarea.id, "hecho")
+                                  }
+                                >
                                   Marcar como hecha
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Eliminar</DropdownMenuItem>
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() => handleDelete(tarea)}
+                                >
+                                  Eliminar
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -470,7 +573,7 @@ export function TareasPage() {
                   <TableRow>
                     <TableCell
                       colSpan={
-                        3 +
+                        2 +
                         Number(columns.categoria) +
                         Number(columns.estado) +
                         Number(columns.prioridad) +
@@ -487,6 +590,22 @@ export function TareasPage() {
           </div>
         </CardContent>
       </Card>
+
+      {editing && (
+        <TareaSheet
+          key={editing.id}
+          mode="edit"
+          tarea={editing}
+          open
+          onOpenChange={(o) => {
+            if (!o) setEditing(null)
+          }}
+          onDone={() => {
+            setEditing(null)
+            refetch()
+          }}
+        />
+      )}
     </div>
   )
 }
