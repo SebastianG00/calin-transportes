@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useFacturas } from "@/hooks/use-facturas"
 import { uploadFactura, exportFacturas } from "@/lib/factura-actions"
 
-const STATUS: Record<string, { label: string; cls: string }> = {
+const STATUS: Record<"pending" | "confirmed" | "rejected", { label: string; cls: string }> = {
   pending: { label: "Pendiente", cls: "bg-amber-100 text-amber-800" },
   confirmed: { label: "Confirmada", cls: "bg-emerald-100 text-emerald-800" },
   rejected: { label: "Rechazada", cls: "bg-red-100 text-red-800" },
@@ -20,6 +20,7 @@ export function FacturasPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
   const [busy, setBusy] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
@@ -27,6 +28,13 @@ export function FacturasPage() {
     try { await uploadFactura(file); toast.success("Factura subida."); refetch() }
     catch (err) { toast.error((err as Error).message) }
     finally { setBusy(false); if (fileRef.current) fileRef.current.value = "" }
+  }
+
+  async function onExport() {
+    setExporting(true)
+    try { await exportFacturas(month) }
+    catch (err) { toast.error((err as Error).message) }
+    finally { setExporting(false) }
   }
 
   if (loading) return <div className="px-6 py-10 text-sm text-muted-foreground">Cargando facturas…</div>
@@ -38,8 +46,8 @@ export function FacturasPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Facturas</h1>
         <div className="flex items-center gap-2">
           <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-40" />
-          <Button variant="outline" size="sm" onClick={() => exportFacturas(month)}>
-            <DownloadIcon /> Exportar mes
+          <Button variant="outline" size="sm" disabled={exporting} onClick={onExport}>
+            <DownloadIcon /> {exporting ? "Exportando…" : "Exportar mes"}
           </Button>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
           <Button size="sm" disabled={busy} onClick={() => fileRef.current?.click()}>
