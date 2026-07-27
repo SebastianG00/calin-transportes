@@ -9,7 +9,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const BUCKET_NAME = "guias";
+const BUCKET_NAMES = ["guias", "facturas"];
 
 async function main() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -25,37 +25,23 @@ async function main() {
     auth: { persistSession: false },
   });
 
-  const { data, error } = await supabase.storage.createBucket(BUCKET_NAME, {
-    public: false,
-  });
-
-  if (error) {
-    // Idempotent: bucket already existing is success, not failure.
-    const alreadyExists =
-      "statusCode" in error && (error as { statusCode?: string }).statusCode === "409";
-    const messageSaysExists = /already exists/i.test(error.message ?? "");
-    if (alreadyExists || messageSaysExists) {
-      console.log(`bucket "${BUCKET_NAME}" already exists — ok`);
+  for (const name of BUCKET_NAMES) {
+    const { data, error } = await supabase.storage.createBucket(name, { public: false });
+    if (error) {
+      const exists = ("statusCode" in error && (error as { statusCode?: string }).statusCode === "409")
+        || /already exists/i.test(error.message ?? "");
+      if (exists) console.log(`bucket "${name}" already exists — ok`);
+      else throw error;
     } else {
-      throw error;
+      console.log(`created bucket "${name}"`, data);
     }
-  } else {
-    console.log(`created bucket "${BUCKET_NAME}"`, data);
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (listError) throw listError;
+    const b = buckets?.find((x) => x.name === name);
+    if (!b) throw new Error(`bucket "${name}" not found after creation`);
+    if (b.public !== false) throw new Error(`bucket "${name}" is not private (public=${b.public})`);
+    console.log(`verified: bucket "${name}" exists, public=${b.public}`);
   }
-
-  // Verify: list buckets and confirm it exists and is private.
-  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-  if (listError) {
-    throw listError;
-  }
-  const bucket = buckets?.find((b) => b.name === BUCKET_NAME);
-  if (!bucket) {
-    throw new Error(`bucket "${BUCKET_NAME}" not found after creation`);
-  }
-  if (bucket.public !== false) {
-    throw new Error(`bucket "${BUCKET_NAME}" is not private (public=${bucket.public})`);
-  }
-  console.log(`verified: bucket "${BUCKET_NAME}" exists, public=${bucket.public}`);
 }
 
 main().catch((err) => {
