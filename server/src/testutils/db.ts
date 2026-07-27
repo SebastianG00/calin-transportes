@@ -10,6 +10,7 @@ export async function resetDb() {
   // messages/loads and would otherwise block their deletion below.
   await db.from("document_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   await db.from("load_documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await db.from("facturas").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   await db.from("messages").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   await db.from("pending_prompts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
   await db.from("load_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
