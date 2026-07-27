@@ -25,6 +25,12 @@ async function signedUrl(path: string | null): Promise<string | null> {
   return data?.signedUrl ?? null;
 }
 
+function notPendingError(): Error & { status?: number; code?: string } {
+  const err = new Error("Esta factura ya fue revisada.") as Error & { status?: number; code?: string };
+  err.status = 409; err.code = "NOT_PENDING";
+  return err;
+}
+
 export interface EnrichedFactura { factura: Record<string, unknown>; photoUrl: string | null; }
 
 export async function extractFacturaDoc(id: string): Promise<EnrichedFactura> {
@@ -33,8 +39,7 @@ export async function extractFacturaDoc(id: string): Promise<EnrichedFactura> {
   if (error) throw error;
   const factura = f as Record<string, unknown>;
   if (factura.review_status !== "pending") {
-    const err = new Error("Esta factura ya fue revisada.") as Error & { status?: number; code?: string };
-    err.status = 409; err.code = "NOT_PENDING"; throw err;
+    throw notPendingError();
   }
   const path = factura.image_path as string;
   const dl = await db.storage.from(BUCKET).download(path);
@@ -68,34 +73,36 @@ export async function confirmFactura(
   if (error) throw error;
   const factura = f as Record<string, unknown>;
   if (factura.review_status !== "pending") {
-    const err = new Error("Esta factura ya fue revisada.") as Error & { status?: number; code?: string };
-    err.status = 409; err.code = "NOT_PENDING"; throw err;
+    throw notPendingError();
   }
   const extracted = { ...(factura.extracted as Record<string, { value?: string; verbatim?: string; source?: string; bbox?: unknown }>) };
   for (const [field, newVal] of Object.entries(input.corrections ?? {})) {
     const prev = extracted[field] ?? {};
     extracted[field] = { ...prev, value: newVal, source: "human" };
   }
+  const clientId = input.client_id !== undefined ? input.client_id : (factura.client_id ?? null);
   const { data, error: uErr } = await db.from("facturas").update({
-    review_status: "confirmed", extracted, client_id: input.client_id ?? factura.client_id ?? null,
+    review_status: "confirmed", extracted, client_id: clientId,
     confirmed_by: userId, confirmed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-  }).eq("id", id).select("*").single();
+  }).eq("id", id).eq("review_status", "pending").select("*");
   if (uErr) throw uErr;
-  return data;
+  if (!data || data.length === 0) throw notPendingError();
+  return data[0];
 }
 
 export async function rejectFactura(id: string, userId: string) {
   const db = getServiceClient();
-  const { data: f } = await db.from("facturas").select("review_status").eq("id", id).single();
-  if ((f as { review_status?: string } | null)?.review_status !== "pending") {
-    const err = new Error("Esta factura ya fue revisada.") as Error & { status?: number; code?: string };
-    err.status = 409; err.code = "NOT_PENDING"; throw err;
-  }
-  const { data, error } = await db.from("facturas")
-    .update({ review_status: "rejected", confirmed_by: userId, updated_at: new Date().toISOString() })
-    .eq("id", id).select("*").single();
+  const { data: f, error } = await db.from("facturas").select("review_status").eq("id", id).single();
   if (error) throw error;
-  return data;
+  if ((f as { review_status?: string } | null)?.review_status !== "pending") {
+    throw notPendingError();
+  }
+  const { data, error: uErr } = await db.from("facturas")
+    .update({ review_status: "rejected", confirmed_by: userId, updated_at: new Date().toISOString() })
+    .eq("id", id).eq("review_status", "pending").select("*");
+  if (uErr) throw uErr;
+  if (!data || data.length === 0) throw notPendingError();
+  return data[0];
 }
 
 export async function listFacturas(status?: string) {
