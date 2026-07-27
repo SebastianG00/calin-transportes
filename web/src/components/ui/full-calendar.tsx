@@ -194,6 +194,8 @@ const EventGroup = ({
   events: CalendarEvent[];
   hour: Date;
 }) => {
+  const { onEventClick } = useCalendar();
+
   return (
     <div className="h-20 border-t last:border-b">
       {events
@@ -206,8 +208,9 @@ const EventGroup = ({
           return (
             <div
               key={event.id}
+              onClick={() => onEventClick?.(event)}
               className={cn(
-                'relative',
+                'relative cursor-pointer',
                 dayEventVariants({ variant: event.color })
               )}
               style={{
@@ -325,7 +328,7 @@ const CalendarWeekView = () => {
 };
 
 const CalendarMonthView = () => {
-  const { date, view, events, locale } = useCalendar();
+  const { date, view, events, locale, onEventClick } = useCalendar();
 
   const monthDates = useMemo(() => getDaysInMonth(date), [date]);
   const weekDays = useMemo(() => generateWeekdays(locale), [locale]);
@@ -374,7 +377,8 @@ const CalendarMonthView = () => {
                 return (
                   <div
                     key={event.id}
-                    className="px-1 rounded text-sm flex items-center gap-1"
+                    onClick={() => onEventClick?.(event)}
+                    className="px-1 rounded text-sm flex items-center gap-1 cursor-pointer"
                   >
                     <div
                       className={cn(

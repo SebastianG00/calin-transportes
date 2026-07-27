@@ -1,11 +1,7 @@
 import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { es } from "date-fns/locale/es"
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-} from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 
 import {
   Calendar,
@@ -21,7 +17,6 @@ import {
   type CalendarEvent,
 } from "@/components/ui/full-calendar"
 import { Calendar as MiniCalendar } from "@/components/ui/calendar"
-import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { useLoads } from "@/hooks/use-loads"
@@ -68,6 +63,7 @@ const calendarios: {
 ]
 
 export function CalendarioPage() {
+  const navigate = useNavigate()
   const { loads } = useLoads()
   const { tasks } = useTasks()
 
@@ -103,6 +99,11 @@ export function CalendarioPage() {
     [events, checked]
   )
 
+  const hrefById = useMemo(
+    () => new Map(events.map((e) => [e.id, e.href])),
+    [events]
+  )
+
   return (
     <div className="flex h-[calc(100vh-6rem)] flex-col gap-4 px-4 lg:px-6">
       <div className="flex flex-col gap-1">
@@ -115,11 +116,6 @@ export function CalendarioPage() {
       <div className="flex min-h-0 flex-1 gap-6">
         {/* Left column */}
         <aside className="flex w-[280px] shrink-0 flex-col gap-6 overflow-auto">
-          <Button className="w-full">
-            <Plus className="size-4" />
-            Nuevo evento
-          </Button>
-
           <MiniCalendar
             mode="single"
             selected={selectedDate}
@@ -164,7 +160,15 @@ export function CalendarioPage() {
 
         {/* Main area */}
         <div className="flex min-h-0 flex-1 flex-col">
-          <Calendar events={visibleEvents} locale={es} view="month">
+          <Calendar
+            events={visibleEvents}
+            locale={es}
+            view="month"
+            onEventClick={(ev) => {
+              const href = hrefById.get(ev.id)
+              if (href) navigate(href)
+            }}
+          >
             <div className="flex items-center gap-2 pb-4">
               <CalendarViewTrigger
                 view="day"
