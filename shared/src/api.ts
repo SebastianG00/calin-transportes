@@ -45,3 +45,21 @@ export const UnitInput = z.object({
   active: z.boolean().default(true),
 });
 export type UnitInput = z.infer<typeof UnitInput>;
+
+export const UnitExpenseInput = z.object({
+  fecha: z.string().min(1),
+  tipo: z.enum(["combustible", "gasto"]),
+  galones: z.number().positive().nullable().default(null),
+  monto: z.number().nonnegative(),
+  driver_id: z.string().uuid().nullable().default(null),
+  nota: z.string().nullable().default(null),
+});
+export type UnitExpenseInput = z.infer<typeof UnitExpenseInput>;
+
+export const UnitMaintenanceInput = z.object({
+  fecha: z.string().min(1),
+  tipo: z.enum(["mantenimiento", "lavado"]),
+  detalle: z.string().nullable().default(null),
+  costo: z.number().nonnegative().nullable().default(null),
+});
+export type UnitMaintenanceInput = z.infer<typeof UnitMaintenanceInput>;

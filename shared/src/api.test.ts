@@ -1,6 +1,37 @@
 import { describe, it, expect } from "vitest";
-import { CreateLoadInput, DriverInput } from "./api.js";
+import { CreateLoadInput, DriverInput, UnitExpenseInput, UnitMaintenanceInput } from "./api.js";
 import { normalizeE164 } from "./provider.js";
+
+describe("UnitExpenseInput", () => {
+  it("accepts a fuel entry", () => {
+    const r = UnitExpenseInput.safeParse({
+      fecha: "2026-07-20", tipo: "combustible", galones: 45, monto: 850,
+      driver_id: "33333333-3333-3333-3333-333333333333", nota: "Grifo Primax",
+    });
+    expect(r.success).toBe(true);
+  });
+  it("accepts a non-fuel expense without galones/driver", () => {
+    const r = UnitExpenseInput.safeParse({ fecha: "2026-07-20", tipo: "gasto", monto: 120 });
+    expect(r.success).toBe(true);
+    if (r.success) { expect(r.data.galones).toBeNull(); expect(r.data.driver_id).toBeNull(); }
+  });
+  it("rejects an unknown tipo and a negative monto", () => {
+    expect(UnitExpenseInput.safeParse({ fecha: "2026-07-20", tipo: "x", monto: 10 }).success).toBe(false);
+    expect(UnitExpenseInput.safeParse({ fecha: "2026-07-20", tipo: "gasto", monto: -5 }).success).toBe(false);
+  });
+});
+
+describe("UnitMaintenanceInput", () => {
+  it("accepts a maintenance entry", () => {
+    const r = UnitMaintenanceInput.safeParse({
+      fecha: "2026-07-20", tipo: "mantenimiento", detalle: "Cambio de aceite", costo: 300,
+    });
+    expect(r.success).toBe(true);
+  });
+  it("rejects an unknown tipo", () => {
+    expect(UnitMaintenanceInput.safeParse({ fecha: "2026-07-20", tipo: "otro" }).success).toBe(false);
+  });
+});
 
 describe("DriverInput profile fields", () => {
   const base = { name: "Luis Gomez", whatsapp_phone: "+51999888777" };
