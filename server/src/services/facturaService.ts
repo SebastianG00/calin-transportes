@@ -3,6 +3,7 @@ import { getServiceClient } from "../db/client.js";
 import { extractFactura, FACTURA_FIELDS } from "../ai/facturaVision.js";
 import { ocrWordBoxes, groundFields } from "../pipeline/ocr.js";
 import { facturasToCsv, type FacturaCsvRow } from "./facturaCsv.js";
+import { DomainError } from "../domain/errors.js";
 
 const BUCKET = "facturas";
 
@@ -25,10 +26,8 @@ async function signedUrl(path: string | null): Promise<string | null> {
   return data?.signedUrl ?? null;
 }
 
-function notPendingError(): Error & { status?: number; code?: string } {
-  const err = new Error("Esta factura ya fue revisada.") as Error & { status?: number; code?: string };
-  err.status = 409; err.code = "NOT_PENDING";
-  return err;
+function notPendingError(): DomainError {
+  return new DomainError(409, "NOT_PENDING", "Esta factura ya fue revisada.");
 }
 
 export interface EnrichedFactura { factura: Record<string, unknown>; photoUrl: string | null; }
