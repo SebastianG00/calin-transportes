@@ -30,6 +30,12 @@ function notPendingError(): DomainError {
   return new DomainError(409, "NOT_PENDING", "Esta factura ya fue revisada.");
 }
 
+// confirmed_by FK-references auth.users; null out non-UUID actors (e.g. "office")
+// so they don't trip the constraint — mirrors documentService's guard.
+function actorUuid(userId: string): string | null {
+  return /^[0-9a-f-]{36}$/i.test(userId) ? userId : null;
+}
+
 export interface EnrichedFactura { factura: Record<string, unknown>; photoUrl: string | null; }
 
 export async function extractFacturaDoc(id: string): Promise<EnrichedFactura> {
@@ -84,7 +90,7 @@ export async function confirmFactura(
   const clientId = input.client_id !== undefined ? input.client_id : (factura.client_id ?? null);
   const { data, error: uErr } = await db.from("facturas").update({
     review_status: "confirmed", extracted, client_id: clientId,
-    confirmed_by: userId, confirmed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    confirmed_by: actorUuid(userId), confirmed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
   }).eq("id", id).eq("review_status", "pending").select("*");
   if (uErr) throw uErr;
   if (!data || data.length === 0) throw notPendingError();
@@ -99,7 +105,7 @@ export async function rejectFactura(id: string, userId: string) {
     throw notPendingError();
   }
   const { data, error: uErr } = await db.from("facturas")
-    .update({ review_status: "rejected", confirmed_by: userId, updated_at: new Date().toISOString() })
+    .update({ review_status: "rejected", confirmed_by: actorUuid(userId), updated_at: new Date().toISOString() })
     .eq("id", id).eq("review_status", "pending").select("*");
   if (uErr) throw uErr;
   if (!data || data.length === 0) throw notPendingError();

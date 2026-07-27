@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { getServiceClient } from "../db/client.js";
 import { resetDb } from "../testutils/db.js";
 import { exportFacturasCsv, confirmFactura, rejectFactura } from "./facturaService.js";
@@ -80,30 +80,16 @@ describe("facturaService", () => {
   });
 
   describe("pending guard", () => {
-    // confirmed_by FKs to auth.users(id) and facturaService does not null out
-    // non-existent ids the way documentService/guiaService do, so a
-    // UUID-shaped-but-nonexistent id (e.g. "00000000-0000-0000-0000-000000000001")
-    // would trip the FK constraint. Create a real (throwaway) auth user instead.
-    let userId: string;
+    // confirmed_by FKs to auth.users(id); actorUuid() nulls non-UUID actors
+    // (e.g. "office") so they don't trip the FK — so tests can use a plain actor.
+    const userId = "office";
 
-    beforeAll(async () => {
-      const email = `factura-test-${Date.now()}@example.local`;
-      const { data, error } = await getServiceClient().auth.admin.createUser({
-        email, password: "Passw0rd!23456", email_confirm: true,
-      });
-      if (error) throw error;
-      userId = data.user!.id;
-    });
-
-    afterAll(async () => {
-      if (userId) await getServiceClient().auth.admin.deleteUser(userId);
-    });
-
-    it("confirmFactura flips pending → confirmed, then a second call throws NOT_PENDING", async () => {
+    it("confirmFactura flips pending → confirmed with a non-UUID actor → confirmed_by null (no FK error)", async () => {
       const id = await seedFactura("pending", fullExtracted());
 
       const confirmed = await confirmFactura(id, {}, userId);
       expect((confirmed as { review_status: string }).review_status).toBe("confirmed");
+      expect((confirmed as { confirmed_by: string | null }).confirmed_by).toBeNull();
 
       await expect(confirmFactura(id, {}, userId)).rejects.toMatchObject({ code: "NOT_PENDING", status: 409 });
     });
