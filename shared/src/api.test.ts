@@ -1,6 +1,31 @@
 import { describe, it, expect } from "vitest";
-import { CreateLoadInput } from "./api.js";
+import { CreateLoadInput, DriverInput } from "./api.js";
 import { normalizeE164 } from "./provider.js";
+
+describe("DriverInput profile fields", () => {
+  const base = { name: "Luis Gomez", whatsapp_phone: "+51999888777" };
+
+  it("stays valid without the new profile fields (backward compatible)", () => {
+    const r = DriverInput.safeParse(base);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.dni).toBeNull();
+      expect(r.data.licencia_categoria).toBeNull();
+      expect(r.data.licencia_vence).toBeNull();
+    }
+  });
+
+  it("accepts DNI, licencia categoría and vencimiento", () => {
+    const r = DriverInput.safeParse({
+      ...base, dni: "12345678", licencia_categoria: "A-IIIb", licencia_vence: "2027-05-01",
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejects a DNI that is not 8 digits", () => {
+    expect(DriverInput.safeParse({ ...base, dni: "123" }).success).toBe(false);
+  });
+});
 
 describe("CreateLoadInput", () => {
   it("accepts a valid load", () => {

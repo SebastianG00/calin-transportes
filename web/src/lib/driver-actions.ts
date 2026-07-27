@@ -5,6 +5,9 @@ export interface DriverBody {
   email: string | null
   whatsapp_phone: string
   active: boolean
+  dni: string | null
+  licencia_categoria: string | null
+  licencia_vence: string | null
 }
 
 export function createDriver(body: DriverBody): Promise<unknown> {
