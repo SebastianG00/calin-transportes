@@ -8,6 +8,9 @@ export interface DriverRow {
   email: string | null
   whatsapp: string
   active: boolean
+  dni: string | null
+  licenciaCategoria: string | null
+  licenciaVence: string | null
   cargas: number
 }
 
@@ -23,7 +26,7 @@ export function useDrivers(): {
 
   const fetchDrivers = useCallback(async () => {
     const [d, l] = await Promise.all([
-      supabase.from("drivers").select("id, name, email, whatsapp_phone, active").order("name"),
+      supabase.from("drivers").select("id, name, email, whatsapp_phone, active, dni, licencia_categoria, licencia_vence").order("name"),
       supabase.from("loads").select("assigned_driver_id"),
     ])
     if (d.error) {
@@ -43,6 +46,9 @@ export function useDrivers(): {
         email: (r.email as string | null) ?? null,
         whatsapp: r.whatsapp_phone as string,
         active: r.active as boolean,
+        dni: (r.dni as string | null) ?? null,
+        licenciaCategoria: (r.licencia_categoria as string | null) ?? null,
+        licenciaVence: (r.licencia_vence as string | null) ?? null,
         cargas: counts.get(r.id as string) ?? 0,
       })),
     )

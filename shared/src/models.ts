@@ -22,6 +22,9 @@ export const Driver = z.object({
   whatsapp_phone: z.string(),
   email: z.string().nullable(),
   active: z.boolean(),
+  dni: z.string().nullable().default(null),
+  licencia_categoria: z.string().nullable().default(null),
+  licencia_vence: z.string().nullable().default(null),
   created_at: z.string(),
 });
 export type Driver = z.infer<typeof Driver>;

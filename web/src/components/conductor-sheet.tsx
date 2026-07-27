@@ -46,6 +46,9 @@ export function ConductorSheet({
   const [email, setEmail] = useState(driver?.email ?? "")
   const [whatsapp, setWhatsapp] = useState(driver?.whatsapp ?? "+51")
   const [activo, setActivo] = useState(driver?.active ?? true)
+  const [dni, setDni] = useState(driver?.dni ?? "")
+  const [licCategoria, setLicCategoria] = useState(driver?.licenciaCategoria ?? "")
+  const [licVence, setLicVence] = useState(driver?.licenciaVence ?? "")
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -59,6 +62,9 @@ export function ConductorSheet({
         email: email.trim() ? email.trim() : null,
         whatsapp_phone: cleanedPhone,
         active: activo,
+        dni: dni.trim() ? dni.trim() : null,
+        licencia_categoria: licCategoria.trim() ? licCategoria.trim() : null,
+        licencia_vence: licVence ? licVence : null,
       }
       if (mode === "create") await createDriver(body)
       else await updateDriver(driver!.id, body)
@@ -109,6 +115,34 @@ export function ConductorSheet({
               onChange={(e) => setWhatsapp(e.target.value)}
               placeholder="+51987654321"
               required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="c-dni">DNI</Label>
+            <Input
+              id="c-dni"
+              value={dni}
+              onChange={(e) => setDni(e.target.value)}
+              placeholder="8 dígitos (opcional)"
+              inputMode="numeric"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="c-lic">Licencia — categoría</Label>
+            <Input
+              id="c-lic"
+              value={licCategoria}
+              onChange={(e) => setLicCategoria(e.target.value)}
+              placeholder="p. ej. A-IIIb (opcional)"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="c-lic-vence">Licencia — vencimiento</Label>
+            <Input
+              id="c-lic-vence"
+              type="date"
+              value={licVence}
+              onChange={(e) => setLicVence(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1.5">

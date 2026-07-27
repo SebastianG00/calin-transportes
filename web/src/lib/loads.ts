@@ -27,6 +27,7 @@ export interface LoadRow {
     | "delivered"
     | "cancelled"
   no_response: boolean
+  scheduled_date: string
   confirm_due_at: string | null
   confirmed_at: string | null
   updated_at: string

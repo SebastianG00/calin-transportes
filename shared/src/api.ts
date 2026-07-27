@@ -32,6 +32,9 @@ export const DriverInput = z.object({
   whatsapp_phone: z.string().regex(/^\+\d{8,15}$/, "usa formato +51999999999 (sin espacios)"),
   email: z.string().email().nullable().default(null),
   active: z.boolean().default(true),
+  dni: z.string().regex(/^\d{8}$/, "DNI: 8 dígitos").nullable().default(null),
+  licencia_categoria: z.string().nullable().default(null),
+  licencia_vence: z.string().nullable().default(null),
 });
 export type DriverInput = z.infer<typeof DriverInput>;
 
