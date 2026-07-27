@@ -57,9 +57,11 @@ export async function extractFacturaDoc(id: string): Promise<EnrichedFactura> {
     extracted[k] = { value: extraction[k].value, verbatim: extraction[k].verbatim, source: "vlm", bbox: boxes[k] ?? null };
   }
   const { data: updated, error: uErr } = await db.from("facturas")
-    .update({ extracted, updated_at: new Date().toISOString() }).eq("id", id).select("*").single();
+    .update({ extracted, updated_at: new Date().toISOString() })
+    .eq("id", id).eq("review_status", "pending").select("*");
   if (uErr) throw uErr;
-  return { factura: updated as Record<string, unknown>, photoUrl: await signedUrl(path) };
+  if (!updated || updated.length === 0) throw notPendingError();
+  return { factura: updated[0] as Record<string, unknown>, photoUrl: await signedUrl(path) };
 }
 
 export async function confirmFactura(
