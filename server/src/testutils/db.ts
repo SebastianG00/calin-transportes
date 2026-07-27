@@ -2,22 +2,31 @@ import { getServiceClient } from "../db/client.js";
 
 export async function resetDb() {
   const db = getServiceClient();
-  await db.from("delivery_emails").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("delivery_guias").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("document_templates").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("requirement_clauses").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+  const wipe = async (t: string) => {
+    const { error } = await db.from(t).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) throw new Error(`resetDb: failed to clear ${t}: ${error.message}`);
+  };
+
+  await wipe("delivery_emails");
+  await wipe("delivery_guias");
+  await wipe("document_templates");
+  await wipe("requirement_clauses");
   // document_events → load_documents must go first: both FK-reference
   // messages/loads and would otherwise block their deletion below.
-  await db.from("document_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("load_documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("facturas").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("messages").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("pending_prompts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("load_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("loads").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("drivers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("units").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  await db.from("clients").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await wipe("document_events");
+  await wipe("load_documents");
+  await wipe("facturas");
+  // unit_expenses/unit_maintenance FK-reference units/drivers; must go before
+  await wipe("unit_expenses");
+  await wipe("unit_maintenance");
+  await wipe("messages");
+  await wipe("pending_prompts");
+  await wipe("load_events");
+  await wipe("loads");
+  await wipe("drivers");
+  await wipe("units");
+  await wipe("clients");
 }
 let n = 0;
 export async function seedClient() {
