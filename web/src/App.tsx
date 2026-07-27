@@ -10,6 +10,7 @@ import { ClienteDetailPage } from "@/pages/ClienteDetailPage"
 import { ClientesPage } from "@/pages/ClientesPage"
 import { ConductorDetailPage } from "@/pages/ConductorDetailPage"
 import { ConductoresPage } from "@/pages/ConductoresPage"
+import { FacturaDetailPage } from "@/pages/FacturaDetailPage"
 import { FacturasPage } from "@/pages/FacturasPage"
 import { GuiaPrintPage } from "@/pages/GuiaPrintPage"
 import { InventarioPage } from "@/pages/InventarioPage"
@@ -49,6 +50,7 @@ const router = createBrowserRouter([
           { path: "tareas", element: <TareasPage /> },
           { path: "inventario", element: <InventarioPage /> },
           { path: "facturas", element: <FacturasPage /> },
+          { path: "facturas/:id", element: <FacturaDetailPage /> },
         ],
       },
     ],

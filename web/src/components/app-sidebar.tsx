@@ -82,7 +82,6 @@ const data = {
       title: "Facturas",
       url: "/facturas",
       icon: <ReceiptIcon />,
-      badge: "pronto",
     },
   ],
 }
