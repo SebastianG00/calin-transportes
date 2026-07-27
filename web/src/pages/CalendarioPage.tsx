@@ -24,7 +24,11 @@ import { Calendar as MiniCalendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { type EventoCategoria, eventos } from "@/data/eventos"
+import { useLoads } from "@/hooks/use-loads"
+import { useTasks } from "@/hooks/use-tasks"
+import { loadEvents, taskEvents } from "@/lib/calendar-events"
+
+type EventoCategoria = "cargas" | "tareas"
 
 type SectionProps = {
   title: string
@@ -60,26 +64,43 @@ const calendarios: {
   dot: string
 }[] = [
   { categoria: "cargas", label: "Cargas", dot: "bg-green-500" },
-  { categoria: "oficina", label: "Oficina", dot: "bg-purple-500" },
-  { categoria: "personal", label: "Personal", dot: "bg-blue-500" },
+  { categoria: "tareas", label: "Tareas", dot: "bg-blue-500" },
 ]
 
 export function CalendarioPage() {
+  const { loads } = useLoads()
+  const { tasks } = useTasks()
+
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(2026, 6, 16)
   )
   const [checked, setChecked] = useState<Record<EventoCategoria, boolean>>({
     cargas: true,
-    oficina: true,
-    personal: true,
+    tareas: true,
   })
+
+  const events = useMemo(
+    () => [
+      ...loadEvents(
+        loads.map((l) => ({
+          id: l.id,
+          cliente: l.cliente,
+          destino: l.destino,
+          estado: l.estado,
+          scheduled_date: l.scheduled_date,
+        }))
+      ),
+      ...taskEvents(tasks),
+    ],
+    [loads, tasks]
+  )
 
   const visibleEvents = useMemo<CalendarEvent[]>(
     () =>
-      eventos
+      events
         .filter((e) => checked[e.categoria])
-        .map(({ categoria: _categoria, ...event }) => event),
-    [checked]
+        .map(({ categoria: _categoria, href: _href, ...event }) => event),
+    [events, checked]
   )
 
   return (
