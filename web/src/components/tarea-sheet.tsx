@@ -87,8 +87,8 @@ export function TareaSheet({
         estado,
         prioridad,
         fecha_vencimiento: vence ? vence : null,
-        load_id: null,
-        client_id: null,
+        load_id: mode === "edit" ? (tarea?.load_id ?? null) : null,
+        client_id: mode === "edit" ? (tarea?.client_id ?? null) : null,
       }
       if (mode === "create") await createTask(body)
       else await updateTask(tarea!.id, body)
