@@ -63,3 +63,14 @@ export const UnitMaintenanceInput = z.object({
   costo: z.number().nonnegative().nullable().default(null),
 });
 export type UnitMaintenanceInput = z.infer<typeof UnitMaintenanceInput>;
+
+export const TaskInput = z.object({
+  titulo: z.string().min(1),
+  categoria: z.enum(["Carga", "Cobro", "Mantenimiento", "Cliente", "Otro"]),
+  estado: z.enum(["pendiente", "en_proceso", "hecho"]).default("pendiente"),
+  prioridad: z.enum(["critica", "importante", "normal"]).default("normal"),
+  fecha_vencimiento: z.string().nullable().default(null),
+  load_id: z.string().uuid().nullable().default(null),
+  client_id: z.string().uuid().nullable().default(null),
+});
+export type TaskInput = z.infer<typeof TaskInput>;
