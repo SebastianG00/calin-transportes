@@ -45,7 +45,7 @@ export function WhatsappDraftCard({ loadId }: { loadId: string }) {
       <CardHeader><CardTitle>WhatsApp con IA (borrador)</CardTitle></CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Select value={intent} onValueChange={(v) => setIntent(v as WhatsappIntent)}>
+          <Select value={intent} onValueChange={(v) => setIntent(v as WhatsappIntent)} items={INTENTS}>
             <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
             <SelectContent>
               {INTENTS.map((i) => (
