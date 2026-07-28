@@ -2,6 +2,7 @@ import type { CSSProperties } from "react"
 import { Outlet } from "react-router-dom"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { AssistantDock } from "@/components/assistant-dock"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
@@ -25,6 +26,7 @@ export function AppLayout() {
             </div>
           </div>
         </div>
+        <AssistantDock />
       </SidebarInset>
     </SidebarProvider>
   )
