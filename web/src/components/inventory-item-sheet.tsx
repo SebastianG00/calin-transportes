@@ -17,7 +17,7 @@ export function InventoryItemSheet({ onSaved }: { onSaved: () => void }) {
   const [open, setOpen] = useState(false)
   const [nombre, setNombre] = useState("")
   const [categoria, setCategoria] = useState<Categoria>("Llantas")
-  const [unidad, setUnidad] = useState("unidad")
+  const [unidad, setUnidad] = useState("")
   const [minimo, setMinimo] = useState("0")
   const [busy, setBusy] = useState(false)
 
@@ -25,9 +25,9 @@ export function InventoryItemSheet({ onSaved }: { onSaved: () => void }) {
     if (!nombre.trim()) { toast.error("Ingresa un nombre."); return }
     setBusy(true)
     try {
-      await createItem({ nombre, categoria, unidad_medida: unidad, stock_minimo: Number(minimo) || 0 })
+      await createItem({ nombre, categoria, unidad_medida: unidad.trim() || "unidad", stock_minimo: Number(minimo) || 0 })
       toast.success("Ítem creado")
-      setOpen(false); setNombre(""); setMinimo("0"); onSaved()
+      setOpen(false); setNombre(""); setUnidad(""); setMinimo("0"); onSaved()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo guardar.")
     } finally { setBusy(false) }
