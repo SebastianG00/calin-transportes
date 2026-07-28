@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CreateLoadInput, DriverInput, UnitExpenseInput, UnitMaintenanceInput } from "./api.js";
+import { CreateLoadInput, DriverInput, UnitExpenseInput, UnitMaintenanceInput, TaskInput } from "./api.js";
 import { normalizeE164 } from "./provider.js";
 
 describe("UnitExpenseInput", () => {
@@ -82,6 +82,35 @@ describe("CreateLoadInput", () => {
       driver_id: "33333333-3333-3333-3333-333333333333",
     });
     expect(r.success).toBe(false);
+  });
+});
+
+describe("TaskInput", () => {
+  const base = { titulo: "Cobrar a Gloria", categoria: "Cobro" as const };
+  it("accepts a task with just título + categoría, defaulting the rest", () => {
+    const r = TaskInput.safeParse(base);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.estado).toBe("pendiente");
+      expect(r.data.prioridad).toBe("normal");
+      expect(r.data.fecha_vencimiento).toBeNull();
+      expect(r.data.load_id).toBeNull();
+      expect(r.data.client_id).toBeNull();
+    }
+  });
+  it("accepts all fields set", () => {
+    expect(TaskInput.safeParse({
+      ...base, estado: "en_proceso", prioridad: "critica",
+      fecha_vencimiento: "2026-08-01",
+      load_id: "11111111-1111-1111-1111-111111111111",
+      client_id: "22222222-2222-2222-2222-222222222222",
+    }).success).toBe(true);
+  });
+  it("rejects an unknown categoría/estado/prioridad and empty título", () => {
+    expect(TaskInput.safeParse({ ...base, categoria: "Nope" }).success).toBe(false);
+    expect(TaskInput.safeParse({ ...base, estado: "done" }).success).toBe(false);
+    expect(TaskInput.safeParse({ ...base, prioridad: "high" }).success).toBe(false);
+    expect(TaskInput.safeParse({ titulo: "", categoria: "Otro" }).success).toBe(false);
   });
 });
 

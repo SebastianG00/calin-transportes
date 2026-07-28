@@ -68,6 +68,7 @@ export interface BoardLoad {
   confirmacion: string
   entrega: EntregaChip
   precio: string
+  scheduled_date: string
 }
 
 export interface BoardMetrics {
@@ -157,6 +158,7 @@ export function toBoardLoad(row: LoadRow): BoardLoad {
     confirmacion: confirmacionText(row),
     entrega: entregaChip(row.documents),
     precio: `${row.currency === "PEN" ? "S/" : row.currency} ${row.price.toLocaleString("es-PE")}`,
+    scheduled_date: row.scheduled_date,
   }
 }
 

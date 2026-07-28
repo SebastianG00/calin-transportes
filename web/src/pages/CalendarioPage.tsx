@@ -1,11 +1,7 @@
 import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { es } from "date-fns/locale/es"
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-} from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 
 import {
   Calendar,
@@ -21,10 +17,13 @@ import {
   type CalendarEvent,
 } from "@/components/ui/full-calendar"
 import { Calendar as MiniCalendar } from "@/components/ui/calendar"
-import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { type EventoCategoria, eventos } from "@/data/eventos"
+import { useLoads } from "@/hooks/use-loads"
+import { useTasks } from "@/hooks/use-tasks"
+import { loadEvents, taskEvents } from "@/lib/calendar-events"
+
+type EventoCategoria = "cargas" | "tareas"
 
 type SectionProps = {
   title: string
@@ -60,26 +59,49 @@ const calendarios: {
   dot: string
 }[] = [
   { categoria: "cargas", label: "Cargas", dot: "bg-green-500" },
-  { categoria: "oficina", label: "Oficina", dot: "bg-purple-500" },
-  { categoria: "personal", label: "Personal", dot: "bg-blue-500" },
+  { categoria: "tareas", label: "Tareas", dot: "bg-blue-500" },
 ]
 
 export function CalendarioPage() {
+  const navigate = useNavigate()
+  const { loads } = useLoads()
+  const { tasks } = useTasks()
+
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(2026, 6, 16)
   )
   const [checked, setChecked] = useState<Record<EventoCategoria, boolean>>({
     cargas: true,
-    oficina: true,
-    personal: true,
+    tareas: true,
   })
+
+  const events = useMemo(
+    () => [
+      ...loadEvents(
+        loads.map((l) => ({
+          id: l.id,
+          cliente: l.cliente,
+          destino: l.destino,
+          estado: l.estado,
+          scheduled_date: l.scheduled_date,
+        }))
+      ),
+      ...taskEvents(tasks),
+    ],
+    [loads, tasks]
+  )
 
   const visibleEvents = useMemo<CalendarEvent[]>(
     () =>
-      eventos
+      events
         .filter((e) => checked[e.categoria])
-        .map(({ categoria: _categoria, ...event }) => event),
-    [checked]
+        .map(({ categoria: _categoria, href: _href, ...event }) => event),
+    [events, checked]
+  )
+
+  const hrefById = useMemo(
+    () => new Map(events.map((e) => [e.id, e.href])),
+    [events]
   )
 
   return (
@@ -94,11 +116,6 @@ export function CalendarioPage() {
       <div className="flex min-h-0 flex-1 gap-6">
         {/* Left column */}
         <aside className="flex w-[280px] shrink-0 flex-col gap-6 overflow-auto">
-          <Button className="w-full">
-            <Plus className="size-4" />
-            Nuevo evento
-          </Button>
-
           <MiniCalendar
             mode="single"
             selected={selectedDate}
@@ -143,7 +160,15 @@ export function CalendarioPage() {
 
         {/* Main area */}
         <div className="flex min-h-0 flex-1 flex-col">
-          <Calendar events={visibleEvents} locale={es} view="month">
+          <Calendar
+            events={visibleEvents}
+            locale={es}
+            view="month"
+            onEventClick={(ev) => {
+              const href = hrefById.get(ev.id)
+              if (href) navigate(href)
+            }}
+          >
             <div className="flex items-center gap-2 pb-4">
               <CalendarViewTrigger
                 view="day"

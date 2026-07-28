@@ -17,6 +17,7 @@ export async function resetDb() {
   await wipe("document_events");
   await wipe("load_documents");
   await wipe("facturas");
+  await wipe("tasks");
   // unit_expenses/unit_maintenance FK-reference units/drivers; must go before
   await wipe("unit_expenses");
   await wipe("unit_maintenance");

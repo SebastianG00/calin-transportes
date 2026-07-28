@@ -60,6 +60,7 @@ export function LoadDetailPage() {
     confirmacion: "",
     entrega: { label: "—", tone: "muted" },
     precio: load.precio,
+    scheduled_date: load.fecha,
   }
 
   return (
