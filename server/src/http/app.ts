@@ -11,6 +11,7 @@ import { loadsRouter } from "./loads.routes.js";
 import { masterDataRouter } from "./masterData.routes.js";
 import { tasksRouter } from "./tasks.routes.js";
 import { webhookRouter } from "./webhook.routes.js";
+import { whatsappDraftRouter } from "./whatsappDraft.routes.js";
 
 export function createApp() {
   const app = express();
@@ -25,6 +26,7 @@ export function createApp() {
   app.use("/api", requireAuth, clientsRouter);       // /api/clients*
   app.use("/api", requireAuth, guiasRouter);         // /api/loads/:id/guias, /api/guias*
   app.use("/api", requireAuth, emailsRouter);        // /api/loads/:id/emails, /api/emails*
+  app.use("/api", requireAuth, whatsappDraftRouter); // /api/loads/:id/whatsapp-draft
   app.use("/api", requireAuth, facturasRouter);      // /api/facturas*
   app.use("/api", requireAuth, tasksRouter);         // /api/tasks*
   app.use(errorHandler);
