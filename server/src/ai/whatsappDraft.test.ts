@@ -30,6 +30,7 @@ describe("draftWhatsapp", () => {
     await draftWhatsapp({ chofer: "Ana" }, "personalizado", "tono más formal");
     const msgs = JSON.stringify(create.mock.calls[0][0].messages);
     expect(msgs).toContain("tono más formal");
+    expect(msgs).toContain("según la instrucción libre"); // intent objective reached the prompt
   });
 
   it("propagates the 503 when the AI client is unconfigured", async () => {
