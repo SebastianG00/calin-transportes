@@ -74,3 +74,22 @@ export const TaskInput = z.object({
   client_id: z.string().uuid().nullable().default(null),
 });
 export type TaskInput = z.infer<typeof TaskInput>;
+
+export const InventoryItemInput = z.object({
+  nombre: z.string().min(1),
+  categoria: z.enum(["Llantas", "Lubricantes", "Filtros", "Repuestos", "Otros"]),
+  unidad_medida: z.string().min(1).default("unidad"),
+  stock_minimo: z.number().nonnegative().default(0),
+  activo: z.boolean().default(true),
+});
+export type InventoryItemInput = z.infer<typeof InventoryItemInput>;
+
+export const InventoryMovementInput = z.object({
+  item_id: z.string().uuid(),
+  tipo: z.enum(["entrada", "salida"]),
+  cantidad: z.number().positive(),
+  unit_id: z.string().uuid().nullable().default(null),
+  motivo: z.string().nullable().default(null),
+  fecha: z.string().min(1),
+});
+export type InventoryMovementInput = z.infer<typeof InventoryMovementInput>;

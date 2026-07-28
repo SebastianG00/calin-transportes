@@ -187,3 +187,27 @@ export const ClientInput = z.object({
   contact_email: z.string().email().nullable().optional(),
 });
 export type ClientInput = z.infer<typeof ClientInput>;
+
+export const InventoryItem = z.object({
+  id: z.string().uuid(),
+  nombre: z.string(),
+  categoria: z.enum(["Llantas", "Lubricantes", "Filtros", "Repuestos", "Otros"]),
+  unidad_medida: z.string(),
+  stock_minimo: z.number(),
+  activo: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type InventoryItem = z.infer<typeof InventoryItem>;
+
+export const InventoryMovement = z.object({
+  id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  tipo: z.enum(["entrada", "salida"]),
+  cantidad: z.number(),
+  unit_id: z.string().uuid().nullable(),
+  motivo: z.string().nullable(),
+  fecha: z.string(),
+  created_at: z.string(),
+});
+export type InventoryMovement = z.infer<typeof InventoryMovement>;
