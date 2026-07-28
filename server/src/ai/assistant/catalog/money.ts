@@ -46,7 +46,7 @@ export const moneyTools: QueryTool[] = [
     async run(params: { plate: string; period?: string }, db: Db): Promise<QueryResult> {
       const unitId = await resolveUnitId(db, params.plate);
       const range = parsePeriod(params.period);
-      let q = db.from("unit_expenses").select("fecha, monto, galones").eq("unit_id", unitId).eq("tipo", "combustible");
+      let q = db.from("unit_expenses").select("fecha, monto").eq("unit_id", unitId).eq("tipo", "combustible");
       if (range) q = q.gte("fecha", range.from).lte("fecha", range.to);
       const { data } = await q.limit(1000);
       const rows = (data ?? []) as any[];

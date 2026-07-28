@@ -50,6 +50,7 @@ export async function askAssistant(question: string): Promise<AssistantAnswer> {
     result = await tool.run(params, getServiceClient());
   } catch (e) {
     if (e instanceof ClarifyError) return { answer: e.message, table: null, tool: tool.name };
+    if (e instanceof z.ZodError) return { answer: NO_PUEDO, table: null, tool: null };
     throw e; // real error → errorHandler
   }
 

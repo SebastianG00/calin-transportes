@@ -27,6 +27,7 @@ export function AgentDock({
     window.requestAnimationFrame(() => textareaRef.current?.focus())
   }
   async function submit() {
+    if (busy) return
     const q = message.trim()
     if (!q) { openComposer(); return }
     setMessage("")
