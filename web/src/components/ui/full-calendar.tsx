@@ -32,6 +32,7 @@ import {
   forwardRef,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -117,6 +118,12 @@ const Calendar = ({
   const [view, setView] = useState<View>(_defaultMode);
   const [date, setDate] = useState(defaultDate);
   const [events, setEvents] = useState<CalendarEvent[]>(defaultEvents);
+
+  // Sync internal state when the `events` prop changes (e.g. async data arriving
+  // from hooks after mount) — the useState initializer only runs on first render.
+  useEffect(() => {
+    setEvents(defaultEvents);
+  }, [defaultEvents]);
 
   const changeView = (view: View) => {
     setView(view);
