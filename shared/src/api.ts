@@ -85,11 +85,10 @@ export const InventoryItemInput = z.object({
 export type InventoryItemInput = z.infer<typeof InventoryItemInput>;
 
 export const InventoryMovementInput = z.object({
-  item_id: z.string().uuid(),
   tipo: z.enum(["entrada", "salida"]),
   cantidad: z.number().positive(),
   unit_id: z.string().uuid().nullable().default(null),
   motivo: z.string().nullable().default(null),
-  fecha: z.string().min(1),
+  fecha: z.string().nullable().default(null),
 });
 export type InventoryMovementInput = z.infer<typeof InventoryMovementInput>;
