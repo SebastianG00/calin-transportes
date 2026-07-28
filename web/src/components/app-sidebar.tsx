@@ -76,7 +76,6 @@ const data = {
       title: "Inventario",
       url: "/inventario",
       icon: <PackageIcon />,
-      badge: "pronto",
     },
     {
       title: "Facturas",
