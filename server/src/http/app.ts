@@ -1,6 +1,7 @@
 import express from "express";
 import { requireAuth } from "./auth.js";
 import { errorHandler } from "./errorHandler.js";
+import { assistantRouter } from "./assistant.routes.js";
 import { documentsRouter } from "./documents.routes.js";
 import { clausesRouter } from "./clauses.routes.js";
 import { clientsRouter } from "./clients.routes.js";
@@ -29,6 +30,7 @@ export function createApp() {
   app.use("/api", requireAuth, whatsappDraftRouter); // /api/loads/:id/whatsapp-draft
   app.use("/api", requireAuth, facturasRouter);      // /api/facturas*
   app.use("/api", requireAuth, tasksRouter);         // /api/tasks*
+  app.use("/api", requireAuth, assistantRouter);     // /api/assistant/ask
   app.use(errorHandler);
   return app;
 }
