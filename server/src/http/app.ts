@@ -8,6 +8,7 @@ import { clientsRouter } from "./clients.routes.js";
 import { emailsRouter } from "./emails.routes.js";
 import { facturasRouter } from "./facturas.routes.js";
 import { guiasRouter } from "./guias.routes.js";
+import { inventoryRouter } from "./inventory.routes.js";
 import { loadsRouter } from "./loads.routes.js";
 import { masterDataRouter } from "./masterData.routes.js";
 import { tasksRouter } from "./tasks.routes.js";
@@ -30,6 +31,7 @@ export function createApp() {
   app.use("/api", requireAuth, whatsappDraftRouter); // /api/loads/:id/whatsapp-draft
   app.use("/api", requireAuth, facturasRouter);      // /api/facturas*
   app.use("/api", requireAuth, tasksRouter);         // /api/tasks*
+  app.use("/api", requireAuth, inventoryRouter);     // /api/inventory/items(+/:id/movements)
   app.use("/api", requireAuth, assistantRouter);     // /api/assistant/ask
   app.use(errorHandler);
   return app;
