@@ -1,8 +1,11 @@
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { InventoryItemSheet } from "@/components/inventory-item-sheet"
+import { InventoryMovementSheet } from "@/components/inventory-movement-sheet"
+import { InventoryHistorySheet } from "@/components/inventory-history-sheet"
 import { useInventory } from "@/hooks/use-inventory"
 
 export function InventarioPage() {
@@ -21,6 +24,7 @@ export function InventarioPage() {
               <TableRow>
                 <TableHead>Ítem</TableHead><TableHead>Categoría</TableHead>
                 <TableHead>Stock</TableHead><TableHead>Mínimo</TableHead><TableHead>Unidad</TableHead>
+                <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -35,10 +39,20 @@ export function InventarioPage() {
                   </TableCell>
                   <TableCell>{it.stock_minimo}</TableCell>
                   <TableCell>{it.unidad_medida}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1.5">
+                      <InventoryMovementSheet itemId={it.id} itemNombre={it.nombre} tipo="entrada" onDone={refetch}
+                        trigger={<Button size="sm" variant="outline">+ Entrada</Button>} />
+                      <InventoryMovementSheet itemId={it.id} itemNombre={it.nombre} tipo="salida" onDone={refetch}
+                        trigger={<Button size="sm" variant="outline">− Salida</Button>} />
+                      <InventoryHistorySheet itemId={it.id} itemNombre={it.nombre}
+                        trigger={<Button size="sm" variant="ghost">Historial</Button>} />
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
               {items.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sin ítems todavía.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sin ítems todavía.</TableCell></TableRow>
               ) : null}
             </TableBody>
           </Table>
