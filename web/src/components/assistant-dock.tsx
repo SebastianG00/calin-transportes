@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
 import { AgentDock } from "@/components/ui/agent-dock"
 import {
@@ -23,34 +24,45 @@ export function AssistantDock() {
     } finally { setBusy(false) }
   }
 
+  // Only render the answer stack when there's something to show — otherwise the
+  // dock draws an empty card above the composer.
+  const hasContent = history.length > 0 || busy
+
   return (
     <AgentDock title="Asistente IA" status="Pregunta sobre tus datos" busy={busy} onSubmit={onSubmit}>
-      <div className="flex flex-col gap-2">
-        {history.map((qa, i) => (
-          <div key={i} className="rounded-xl border bg-background p-2 text-sm">
-            <p className="text-muted-foreground">{qa.question}</p>
-            <p className="mt-1 font-medium">{qa.result.answer}</p>
-            {qa.result.table && qa.result.table.rows.length > 0 ? (
-              <div className="mt-2 overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {qa.result.table.columns.map((c) => <TableHead key={c}>{c}</TableHead>)}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {qa.result.table.rows.map((row, r) => (
-                      <TableRow key={r}>
-                        {row.map((cell, c) => <TableCell key={c}>{cell ?? "—"}</TableCell>)}
+      {hasContent ? (
+        <div className="flex flex-col gap-2">
+          {history.map((qa, i) => (
+            <div key={i} className="rounded-xl border bg-background p-2 text-sm">
+              <p className="text-muted-foreground">{qa.question}</p>
+              <p className="mt-1 font-medium">{qa.result.answer}</p>
+              {qa.result.table && qa.result.table.rows.length > 0 ? (
+                <div className="mt-2 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {qa.result.table.columns.map((c) => <TableHead key={c}>{c}</TableHead>)}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
+                    </TableHeader>
+                    <TableBody>
+                      {qa.result.table.rows.map((row, r) => (
+                        <TableRow key={r}>
+                          {row.map((cell, c) => <TableCell key={c}>{cell ?? "—"}</TableCell>)}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : null}
+            </div>
+          ))}
+          {busy ? (
+            <div className="flex items-center gap-2 rounded-xl border bg-background p-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Pensando…
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </AgentDock>
   )
 }

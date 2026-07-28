@@ -87,7 +87,7 @@ export function AgentDock({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             aria-label="Pregunta al asistente"
-            className="h-full w-full resize-none bg-transparent px-3 py-2 text-sm leading-6 outline-none placeholder:text-muted-foreground"
+            className="h-full w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-6 outline-none placeholder:text-muted-foreground"
           />
         </div>
       </div>

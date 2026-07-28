@@ -7,16 +7,32 @@ import { ClarifyError, type AssistantAnswer } from "./types.js";
 
 const NO_PUEDO = "No puedo responder eso todavía.";
 
+// Explicit param fields = the union of every param key across the catalog tools.
+// The model needs a named, structured slot per param or it reliably omits them
+// (a generic string→string record leaves it blank). Each tool re-validates the
+// subset it needs via its own schema; unknown keys are stripped by z.object.
+const ParamsSchema = z.object({
+  status: z.string().optional(),
+  period: z.string().optional(),
+  driver_name: z.string().optional(),
+  plate: z.string().optional(),
+  metric: z.string().optional(),
+  since: z.string().optional(),
+  due_today: z.string().optional(),
+});
+export const SELECTION_PARAM_KEYS = Object.keys(ParamsSchema.shape);
+
 const SelectionSchema = z.object({
   tool: z.enum([...CATALOG_NAMES, "none"] as unknown as [string, ...string[]]),
-  params: z.record(z.string(), z.string()).default({}),
+  params: ParamsSchema.default({}),
 });
 
 function selectionSystem(): string {
   const list = CATALOG.map((t) => `- ${t.name}: ${t.description}`).join("\n");
-  return `Eres un asistente de datos de una empresa de transporte en Perú. Debes elegir UNA herramienta de la lista que responda la pregunta usando SOLO los datos disponibles, y extraer sus params.
+  return `Eres un asistente de datos de una empresa de transporte en Perú. Debes elegir UNA herramienta de la lista que responda la pregunta usando SOLO los datos disponibles, y LLENAR los params relevantes.
+Llena en "params" cada dato que aparezca en la pregunta: driver_name (nombre del conductor), plate (placa de la unidad), status (estado de la carga), period (p. ej. "julio", "este mes", "AAAA-MM"), metric, since, due_today. Si un param no aplica, omítelo.
 Si NINGUNA herramienta aplica (p. ej. preguntas generales, matemáticas, temas ajenos), devuelve tool:"none".
-No inventes params; usa solo los valores que aparezcan en la pregunta.
+No inventes valores; usa solo los que aparezcan en la pregunta.
 Herramientas:
 ${list}`;
 }
