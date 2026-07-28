@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
@@ -13,6 +13,13 @@ type QA = { question: string; result: AssistantAnswer }
 export function AssistantDock() {
   const [history, setHistory] = useState<QA[]>([])
   const [busy, setBusy] = useState(false)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  // Keep the stack pinned to the bottom so the newest answer and the "Pensando…"
+  // spinner stay in view even after many questions (no manual scrolling).
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" })
+  }, [history, busy])
 
   async function onSubmit(question: string) {
     setBusy(true)
@@ -61,6 +68,7 @@ export function AssistantDock() {
               <Loader2 className="size-4 animate-spin" /> Pensando…
             </div>
           ) : null}
+          <div ref={endRef} />
         </div>
       ) : null}
     </AgentDock>
