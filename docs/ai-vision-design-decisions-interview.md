@@ -80,10 +80,27 @@ review, not in the database.
 **Q: You already have a vision model — why also run Tesseract OCR?**
 Two different jobs. The VLM reads *what* the values are; Tesseract tells us *where* they are on
 the page (word bounding boxes). We deliberately **don't trust VLM-emitted coordinates** — they're
-unreliable. Instead, `groundFields` (a pure, unit-tested function) fuzzy-matches each field's
+unreliable. Instead, `groundFields` (a pure, unit-tested function) matches each field's
 `verbatim` string to contiguous OCR tokens and attaches that box. That box drives the
 highlight overlay and serves as **provenance** — a reviewer sees the model's answer sitting on
 the actual pixels it came from.
+
+**Q: Walk me through the matching algorithm — how does a `verbatim` string become a box?**
+Three layers, cheapest-and-most-confident first, each a fallback for the last:
+1. **Exact span match.** Normalize both sides (lowercase, strip accents via Unicode NFD, drop
+   whitespace/punctuation), then find the shortest run of contiguous OCR words whose *joined*
+   normalized text equals the verbatim, and return the union of their boxes. This handles the
+   common case where a value spans tokens ("8,900" + "kg").
+2. **Substring contains.** A single word that contains the target ("000456" contains "456").
+3. **Fuzzy span match** (`fuzzyMatch`). If both miss, find the contiguous span within a
+   **length-scaled edit budget** (Levenshtein ≤ ~1 edit / 6 chars, skipped under 6 chars so
+   short values can't over-match). This recovers a single OCR misread — `ABC-123` read as
+   `ABC-l23` (letter-L for one) — that would otherwise break the exact match.
+
+Two deliberate properties: the accent-folding (step 1) is because Peruvian names/places carry
+diacritics the VLM and OCR don't always agree on ("Cañete" ↔ "Canete"); and the fuzzy step is
+**purely additive** — it only runs when the exact and substring matches already returned nothing,
+so it can only turn a *miss* into a box, never silently change a match the exact pass found.
 
 **Q: What if grounding misses?**
 Non-fatal. The field keeps its value with `bbox: null` and just isn't highlighted. A miss
@@ -260,3 +277,15 @@ data-sharing choice**, bounded by the on-demand design (one call per human-revie
 - **"How is this not just an OCR wrapper?"** — the value is the *decision layer*: three-way reconciliation
   against a load we created, evidence-based confidence, and a 100%-human-confirm audit trail. The read is the
   cheap part.
+- **"How would you improve the OCR?"** — Split it: because OCR is only the *highlighter* here (the VLM is the
+  reader), OCR errors degrade explainability, not correctness, so improvements are prioritized accordingly.
+  **(a) Grounding quality** — algorithmic, safe to ship without real photos: accent-folding and a fuzzy edit-distance
+  fallback (both done); next would be Tesseract per-word **confidence weighting** (render low-confidence boxes
+  differently), **numeric-field specialization** (digit-only matching for peso/RUC), and **positional priors**
+  (values sit right-of/below their label). **(b) OCR input** — needs a labeled real-photo set to validate:
+  a preprocessing pipeline (grayscale → upscale → CLAHE contrast → adaptive binarize → deskew → denoise),
+  PSM/charset-whitelist tuning, and **ROI OCR** (crop to field regions and OCR at higher DPI). **(c) Architecture** —
+  ask a newer VLM for boxes directly (drop Tesseract), or swap to PaddleOCR / a cloud Document-AI engine (better on
+  photos, but breaks the $0 / on-prem / no-egress trade Tesseract was chosen for). The honest gate on all of (b):
+  every change is measured by **grounding IoU + character-error-rate + human-corrections-per-doc** on a real-photo
+  eval set — which is exactly why some of these ship today and the rest wait for that set.
