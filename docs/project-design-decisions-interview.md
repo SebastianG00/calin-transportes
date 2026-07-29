@@ -118,6 +118,111 @@ you which values a person vouched for. That's both the compliance trail and the 
 
 ---
 
+## 3b. Database design decisions
+
+**Q: Why a relational DB (Postgres) rather than NoSQL?**
+The domain is **heavily relational** — loads ↔ drivers ↔ units ↔ clients ↔ documents ↔ events — and
+the correctness rules are things a relational engine enforces for free: foreign keys, uniqueness,
+CHECK constraints, transactions, and **RLS** for security. In a document store all of that becomes
+hand-written app code. So integrity lives in the **schema**, not the application.
+
+**Q: Give examples of invariants enforced by the database, not app logic.**
+- **`one_active_load_per_driver`** — a *partial* unique index on `assigned_driver_id` where
+  `status in (sent,confirmed,en_route)`: "a driver can't have two live loads" is a DB guarantee.
+- **UNIQUE** on `drivers.whatsapp_phone`, `units.plate`, and — crucially — `messages.provider_message_sid`.
+- **CHECK** constraints pin enums (`load status`, `tipo`, `categoria`, `review_status`) at the column.
+
+**Q: How do you make the WhatsApp inbound path idempotent?**
+`messages.provider_message_sid` is **UNIQUE**. WhatsApp/webhook delivery retries the same reply; the
+unique SID means we can't double-process it (a duplicate insert simply conflicts). The fake dev
+provider generates unique SIDs to mirror the real one — so the idempotency path is exercised in dev.
+
+**Q: You store AI output in a `jsonb` column — why not columns?**
+The delivery-document read is an **evolving, per-field payload** — each field carries
+`{value, verbatim, source, bbox, checks}` and the set grew as the feature did (Tier-2 grounding
+`bbox` slotted into `load_documents.extracted` with **zero migration**). So it's a deliberate
+**hybrid**: structured columns for what you *query, index, or constrain* (`review_status`, `phash`,
+the identity fields), and `jsonb` for the flexible AI payload. You get relational integrity where it
+matters and document-store flexibility where the shape churns.
+
+**Q: The append-only `*_events` tables — is that event sourcing?**
+Event-sourcing-*lite*. `load_events` and `document_events` are **immutable audit logs** (the current
+state is still the row on `loads`/`load_documents`; the event tables are the history). Cheap to
+write, impossible to tamper with in place, and they double as the **eval/compliance dataset** — who
+did what, when, and why. Provenance goes further: per-field `source` (`qr`/`vlm`/`human`) records
+which values a person actually vouched for.
+
+**Q: Derived vs stored — the inventory example.**
+Inventory **stock is derived** (`sum(entradas) − sum(salidas)` over the append-only
+`inventory_movements`), never a stored counter. That eliminates stored-vs-real drift and
+update-contention races by construction; the cost is a read-time aggregation, which is trivial at
+this scale (and would become a stored counter via an atomic RPC only if movement volume exploded).
+
+**Q: Indexing + migrations discipline?**
+Indexes sit on the actual query paths — FK+`created_at` composites (`load_events`, `messages`,
+`load_documents`), status filters (`review_status`, `tasks.estado`, `facturas.review_status`), and
+entity/item lookups (`unit_expenses`, `inventory_movements`). Migrations are **numbered, forward-only,
+additive** SQL (`0001`–`0012`), one per slice; the test harness wipes tables in **FK-dependency
+order** so integration tests start clean.
+
+---
+
+## 3c. Scalability, performance & sharding
+
+**Q: What's the honest current scale, and what actually needs to scale?**
+One small operator — hundreds of loads/month, a handful of concurrent office users, one driver
+channel. A single Postgres serves this with enormous headroom. So most of this is about the
+**scaling path**, not a present bottleneck — and being honest about that is the point.
+
+**Q: What scales with no code changes?**
+Three structural properties:
+1. **The API is stateless.** It talks to Postgres via **PostgREST (supabase-js)** with the
+   service-role key and holds no session state → it scales **horizontally** behind a load balancer.
+2. **The timer sweeps use atomic claims** (each row claimed at most once, crash-recoverable,
+   race-tested) → you can run **multiple API instances** and the sweeps stay at-most-once with **no
+   leader election**.
+3. **The read-heavy panel reads Postgres directly through RLS** (supabase-js in the hooks), which
+   **offloads reads off the API** entirely — the API is left to handle writes + compute.
+
+**Q: Where would it strain first, and the fix?**
+- **In-JS aggregates over unbounded fetches** — the assistant's client-volume ranking once capped at
+  1000 rows; already fixed with **pagination**, and would graduate to a **DB-side aggregate/RPC or a
+  rollup table** at real volume.
+- **Derived inventory stock** → a stored counter maintained by an atomic RPC.
+- **Vision AI cost** scales per document → the **on-demand** design bounds it now; at volume you'd add
+  cheaper-model triage/batching.
+- **The free-tier DB** (pauses on inactivity; the direct host is IPv6-only, so migrations use the
+  IPv4 **transaction pooler**) → a paid tier + **PgBouncer** connection pooling.
+
+**Q: Storage?**
+Images live in **Supabase Storage** (object storage, scales independently of the DB) and are served
+via short-lived **signed URLs**; the database only ever stores the path. So file growth never
+pressures the relational store.
+
+**Q: Multi-tenant (many trucking companies)?**
+The schema is already **per-client-shaped** (documents, clauses, templates scoped by client). To host
+many *companies*, you add a `tenant_id`/org column and **RLS-by-tenant**, so isolation is enforced by
+the **database** and every query is automatically scoped. That's the natural step *before* any thought
+of sharding.
+
+**Q: Would you shard the database? Why / why not?**
+**No — sharding here would be premature and probably wrong.** A single Postgres comfortably serves
+this workload and would serve a multi-tenant SaaS of many small operators for a very long time.
+Sharding buys throughput at a steep price: **cross-shard queries, loss of cross-shard transactions
+and FKs, and a much harder RLS/security story** — real costs for a problem we don't have. The
+**ordered** scaling path is: indexes (done) → connection pooling → **read replicas** for the
+read-heavy panel → **table partitioning** for the append-only giants (`load_events`, `messages`,
+`document_events`) by time → tenant-based **logical** sharding (Citus, or a DB-per-large-tenant) only
+if a single primary genuinely can't keep up. Sharding is the **last** lever, not the first — and
+because the design is already **append-only and tenant-scoped**, the natural shard/partition key
+(tenant, or time for the event logs) is *already there* when that day comes.
+
+**Q: The biggest *non-tech* scaling limit?**
+Human vision-review throughput and the deferred production WhatsApp channel (paid + Meta approval) —
+ops/business constraints, not database ones.
+
+---
+
 ## 4. What's built (scope)
 
 **Q: Walk me through the feature surface.**
