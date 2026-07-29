@@ -111,6 +111,47 @@ never auto-reject on a grounding miss; we just lose the visual highlight for tha
 The eval measures **grounding IoU** (intersection-over-union) against known ground-truth boxes,
 with a threshold (>0.3). See §6.
 
+### The fuzzy-match fallback — why we added it
+
+**Q: Exact span-matching already works on the mock guías. Why add a fuzzy fallback at all?**
+Because exact matching is brittle to a **single OCR character error**, and real photos produce them
+constantly — Tesseract routinely confuses `1`↔`l`↔`I`, `0`↔`O`, `5`↔`S`, `8`↔`B`. One misread
+*anywhere* in a value's token span makes the joined normalized string `≠` the verbatim, so the exact
+match fails and that field silently **loses its highlight box**. That means grounding recall drops
+exactly on the messy photos where the highlight helps the reviewer *most*. The fuzzy step recovers
+those: `ABC-123` read by OCR as `ABC-l23` still grounds to the right box.
+
+**Q: Why edit distance specifically, and why a *length-scaled* budget instead of a fixed threshold?**
+OCR errors are character-level substitutions/insertions/deletions — which is exactly what
+**Levenshtein distance** measures, so it's the natural fit. A *fixed* threshold is wrong at both ends:
+"allow 2 edits" makes a 4-char string match almost anything, while for a 20-char string 2 edits is a
+near-perfect match we'd want to accept. So the budget **scales with length** (~1 edit per 6 chars), and
+we **skip fuzzy entirely under 6 characters** — short values like a 2-digit bulto count or `F001` can't
+tolerate any fuzziness without matching noise.
+
+**Q: How is this safe — doesn't a looser match risk regressing grounding that already worked?**
+Two structural guardrails. First, it's a **last-resort fallback**: it only runs after both the exact
+span match *and* the substring-contains match have missed, so it is **strictly additive** — it can turn
+a `null` into a box but can never change a match an earlier layer already found. Every currently
+eval-passing field is untouched. Second, grounding is only the **highlighter**, never the data — the
+VLM read the value and reconciliation checks it against the load — so even a *wrong* fuzzy box is a
+cosmetic blemish the reviewer sees and ignores, not a data-correctness risk. That asymmetry (big upside
+in recall, capped downside) is what makes a slightly generous fallback the right trade here.
+
+**Q: How did you validate it without real photos?**
+Unit tests reproduce the exact failure mode: an OCR word `ABC-l23` (the letter-L misread) grounds to the
+`ABC-123` verbatim (distance 1, within budget), while a genuinely different `XYZ-999` correctly stays
+`null` (over budget → rejected). The *algorithm's* correctness — recovers a single substitution, rejects
+a real mismatch — is provable on synthetic fixtures; the real-photo **IoU lift** is a later eval-set
+gate. That's the same discipline as the rest of the project: prove the logic on mocks, gate robustness on
+real photos.
+
+**Q: When could it bite, and what's the next step?**
+If two similar strings sit near each other, fuzzy could land on the wrong nearby span. It's rare (it only
+fires when both stricter layers missed), tightly budgeted, and — again — affects only the highlight, never
+the value. The next hardening step would be **per-word OCR confidence weighting**: prefer high-confidence
+spans and visually distinguish low-confidence boxes, which would shrink that already-small failure window.
+
 ---
 
 ## 4. Reconciliation (the structural advantage)
