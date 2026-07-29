@@ -5,6 +5,30 @@ import { resolveDriverId, resolveUnitId } from "../resolve.js";
 
 const LOAD_COLS = "scheduled_date,destination,status,weight_kg,driver:drivers(name),unit:units(plate)";
 
+/** Aggregate load volume per client (count or total weight), paging through ALL matching
+ *  loads so a busy period can't silently undercount past a fixed row cap. `pageSize` is
+ *  injectable so the pagination loop is unit-testable without seeding thousands of rows. */
+export async function aggregateClientVolume(
+  db: Db,
+  range: { from: string; to: string } | null,
+  metric: "peso" | "cargas",
+  pageSize = 1000,
+): Promise<Map<string, number>> {
+  const agg = new Map<string, number>();
+  for (let from = 0; ; from += pageSize) {
+    let q = db.from("loads").select("weight_kg,client:clients(name)");
+    if (range) q = q.gte("scheduled_date", range.from).lte("scheduled_date", range.to);
+    const { data } = await q.range(from, from + pageSize - 1);
+    const rows = (data ?? []) as any[];
+    for (const l of rows) {
+      const name = l.client?.name ?? "—";
+      agg.set(name, (agg.get(name) ?? 0) + (metric === "peso" ? Number(l.weight_kg ?? 0) : 1));
+    }
+    if (rows.length < pageSize) break;
+  }
+  return agg;
+}
+
 export const entityTools: QueryTool[] = [
   {
     name: "loads_by_driver",
@@ -44,14 +68,7 @@ export const entityTools: QueryTool[] = [
     async run(params: { period?: string; metric?: "peso" | "cargas" }, db: Db): Promise<QueryResult> {
       const metric = params.metric ?? "cargas";
       const range = parsePeriod(params.period);
-      let q = db.from("loads").select("weight_kg,client:clients(name)");
-      if (range) q = q.gte("scheduled_date", range.from).lte("scheduled_date", range.to);
-      const { data } = await q.limit(1000);
-      const agg = new Map<string, number>();
-      for (const l of (data ?? []) as any[]) {
-        const name = l.client?.name ?? "—";
-        agg.set(name, (agg.get(name) ?? 0) + (metric === "peso" ? Number(l.weight_kg ?? 0) : 1));
-      }
+      const agg = await aggregateClientVolume(db, range, metric);
       const ranked = [...agg.entries()].sort((a, b) => b[1] - a[1]).slice(0, 50);
       const unit = metric === "peso" ? "kg" : "cargas";
       const rows = ranked.map(([name, v]) => [name, metric === "peso" ? Number(v.toFixed(0)) : v]);

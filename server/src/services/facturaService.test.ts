@@ -1,7 +1,17 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { getServiceClient } from "../db/client.js";
 import { resetDb } from "../testutils/db.js";
-import { exportFacturasCsv, confirmFactura, rejectFactura } from "./facturaService.js";
+import { exportFacturasCsv, confirmFactura, rejectFactura, actorUuid } from "./facturaService.js";
+
+describe("actorUuid (confirmed_by guard)", () => {
+  it("keeps a valid UUID, nulls everything else", () => {
+    expect(actorUuid("3add9cf3-2843-4b5f-9f8e-8436244a1111")).toBe("3add9cf3-2843-4b5f-9f8e-8436244a1111");
+    expect(actorUuid("office")).toBeNull();          // non-UUID actor
+    expect(actorUuid(null)).toBeNull();              // unauthenticated
+    expect(actorUuid(undefined)).toBeNull();
+    expect(actorUuid("------------------------------------")).toBeNull(); // 36 chars, but junk
+  });
+});
 
 function fullExtracted(overrides: Record<string, { value: string; verbatim?: string; source?: string }> = {}) {
   const base: Record<string, { value: string; verbatim: string; source: string }> = {

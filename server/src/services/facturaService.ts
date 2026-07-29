@@ -30,10 +30,12 @@ function notPendingError(): DomainError {
   return new DomainError(409, "NOT_PENDING", "Esta factura ya fue revisada.");
 }
 
-// confirmed_by FK-references auth.users; null out non-UUID actors (e.g. "office")
-// so they don't trip the constraint — mirrors documentService's guard.
-function actorUuid(userId: string): string | null {
-  return /^[0-9a-f-]{36}$/i.test(userId) ? userId : null;
+// confirmed_by FK-references auth.users; null out missing/non-UUID actors (e.g. "office"
+// or an unauthenticated caller) so they don't trip the FK constraint. Uses a STRICT UUID
+// pattern — the old loose /[0-9a-f-]{36}/ would accept junk like 36 hyphens. Exported for tests.
+export function actorUuid(userId: string | null | undefined): string | null {
+  if (!userId) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId) ? userId : null;
 }
 
 export interface EnrichedFactura { factura: Record<string, unknown>; photoUrl: string | null; }
