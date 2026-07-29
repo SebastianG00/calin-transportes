@@ -26,4 +26,15 @@ describe("groundFields (pure)", () => {
     expect(out.receptor).toBeNull();
     expect(out.x).toBeNull();
   });
+
+  it("matches across accent differences (Peruvian place/proper names)", () => {
+    const accented: Word[] = [
+      { text: "Cañete", bbox: [10, 50, 60, 12] },
+      { text: "José", bbox: [10, 70, 40, 12] },
+      { text: "Ñañez", bbox: [55, 70, 40, 12] },
+    ];
+    // VLM verbatim without accents still grounds to the accented OCR word(s)
+    expect(groundFields({ destino: { verbatim: "Canete" } }, accented).destino).toEqual([10, 50, 60, 12]);
+    expect(groundFields({ receptor: { verbatim: "Jose Nanez" } }, accented).receptor).toEqual([10, 70, 85, 12]);
+  });
 });

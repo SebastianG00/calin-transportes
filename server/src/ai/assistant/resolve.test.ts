@@ -19,4 +19,13 @@ describe("resolveDriverId", () => {
   it("throws ClarifyError when there is no match", async () => {
     await expect(resolveDriverId(db, "Zzz-nadie")).rejects.toBeInstanceOf(ClarifyError);
   });
+
+  it("resolves across accents (Núñez ↔ nunez)", async () => {
+    const { data } = await db.from("drivers")
+      .insert({ name: "José Núñez", whatsapp_phone: "+51988877766", active: true } as never)
+      .select("id").single();
+    // office types without accents → still resolves the accented name
+    expect(await resolveDriverId(db, "jose nunez")).toBe((data as any).id);
+    expect(await resolveDriverId(db, "Núñez")).toBe((data as any).id);
+  });
 });

@@ -26,7 +26,12 @@ export async function ocrWordBoxes(image: Buffer): Promise<Word[]> {
   }
 }
 
-function norm(s: string): string { return s.toLowerCase().replace(/[\s,.\-]/g, ""); }
+// Lowercase, strip accents (NFD), then drop whitespace/punctuation so grounding
+// matches across accent differences between the VLM verbatim and the OCR read
+// (e.g. "Cañete" ↔ "Canete", "José" ↔ "Jose") — common in Peruvian place/proper names.
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s,.\-]/g, "");
+}
 
 function unionBox(boxes: Word["bbox"][]): Word["bbox"] {
   const x0 = Math.min(...boxes.map((b) => b[0]));
