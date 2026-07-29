@@ -67,5 +67,46 @@ function match(target: string, nWords: Array<{ n: string; bbox: Word["bbox"] }>)
   }
   // Fallback: a single word that contains the target (e.g. "000456" contains "456").
   for (const w of nWords) if (w.n.includes(target)) return w.bbox;
-  return null;
+  // Last resort: fuzzy span match — recovers a single OCR misread ("ABC-123" → "ABC-l23")
+  // that breaks the exact match. Purely additive: only runs when the two matches above
+  // both missed, so it can only turn a null into a box, never change an existing match.
+  return fuzzyMatch(target, nWords);
+}
+
+/** Iterative Levenshtein distance (two-row DP). */
+function levenshtein(a: string, b: string): number {
+  const n = b.length;
+  if (a.length === 0) return n;
+  if (n === 0) return a.length;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  const curr = new Array<number>(n + 1);
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = curr.slice();
+  }
+  return prev[n];
+}
+
+/** Find the contiguous OCR-word span whose joined text is closest to `target` within a
+ *  conservative, length-scaled edit budget (~1 edit / 6 chars). Skipped for short targets
+ *  (< 6 chars) where a small edit distance would over-match. Returns the best span's box. */
+function fuzzyMatch(target: string, nWords: Array<{ n: string; bbox: Word["bbox"] }>): Word["bbox"] | null {
+  if (target.length < 6) return null;
+  const maxDist = Math.floor(target.length / 6);
+  let best: Word["bbox"] | null = null;
+  let bestDist = maxDist + 1;
+  for (let i = 0; i < nWords.length; i++) {
+    let joined = "";
+    for (let j = i; j < nWords.length && joined.length <= target.length + maxDist; j++) {
+      joined += nWords[j].n;
+      if (joined.length < target.length - maxDist) continue; // too short to be within budget yet
+      const d = levenshtein(joined, target);
+      if (d < bestDist) { bestDist = d; best = unionBox(nWords.slice(i, j + 1).map((w) => w.bbox)); }
+    }
+  }
+  return bestDist <= maxDist ? best : null;
 }

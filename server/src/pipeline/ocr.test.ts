@@ -27,6 +27,17 @@ describe("groundFields (pure)", () => {
     expect(out.x).toBeNull();
   });
 
+  it("recovers a single OCR misread via fuzzy match", () => {
+    // OCR misread the plate: "1" → "l". Exact + contains both miss; fuzzy (dist 1, len 6) recovers it.
+    const misread: Word[] = [{ text: "ABC-l23", bbox: [55, 30, 60, 12] }];
+    expect(groundFields({ placa: { verbatim: "ABC-123" } }, misread).placa).toEqual([55, 30, 60, 12]);
+  });
+
+  it("does not fuzzy-match a genuinely different string", () => {
+    const other: Word[] = [{ text: "XYZ-999", bbox: [1, 1, 10, 10] }];
+    expect(groundFields({ placa: { verbatim: "ABC-123" } }, other).placa).toBeNull();
+  });
+
   it("matches across accent differences (Peruvian place/proper names)", () => {
     const accented: Word[] = [
       { text: "Cañete", bbox: [10, 50, 60, 12] },
