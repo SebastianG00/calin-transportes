@@ -5,6 +5,10 @@
 > *guías de remisión* (proof-of-delivery documents). Framed as an interviewer might
 > probe it. Every answer maps to real code in this repo.
 >
+> **This doc is the deep dive on the AI/OCR vision feature.** For the whole platform (what it
+> does, the system-level architecture, the security/concurrency model, scope, and what was
+> deliberately *not* built), see `project-design-decisions-interview.md`.
+>
 > Companion narrative docs: `slice2-delivery-pipeline-explained.md` (Tier 1, deterministic),
 > `slice2-tier2-explained.md` (the AI layer). Design spec (gitignored):
 > `docs/superpowers/specs/2026-07-20-spec2-guia-vision-extraction-design.md`.
