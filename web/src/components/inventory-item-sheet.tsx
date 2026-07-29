@@ -27,7 +27,7 @@ export function InventoryItemSheet({ onSaved }: { onSaved: () => void }) {
     try {
       await createItem({ nombre, categoria, unidad_medida: unidad.trim() || "unidad", stock_minimo: Number(minimo) || 0 })
       toast.success("Ítem creado")
-      setOpen(false); setNombre(""); setUnidad(""); setMinimo("0"); onSaved()
+      setOpen(false); setNombre(""); setCategoria("Llantas"); setUnidad(""); setMinimo("0"); onSaved()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo guardar.")
     } finally { setBusy(false) }

@@ -34,7 +34,7 @@ export function InventarioPage() {
                   <TableCell>{it.categoria}</TableCell>
                   <TableCell>
                     {it.low
-                      ? <Badge variant="outline" className="border-amber-500 text-amber-600">⚠ {it.stock}</Badge>
+                      ? <Badge variant="outline" className="border-amber-500 text-amber-600 dark:border-amber-400/60 dark:text-amber-400">⚠ {it.stock}</Badge>
                       : it.stock}
                   </TableCell>
                   <TableCell>{it.stock_minimo}</TableCell>
