@@ -11,7 +11,7 @@ const num = (s: unknown) => {
 export const moneyTools: QueryTool[] = [
   {
     name: "facturado_total",
-    description: "Suma el total de las facturas CONFIRMADAS en un periodo. Params: period (obligatorio, p. ej. 'julio', 'AAAA-MM').",
+    description: "Suma el total de las facturas CONFIRMADAS en un periodo, agrupado por moneda. Params: period (obligatorio, p. ej. 'julio', 'AAAA-MM').",
     schema: z.object({ period: z.string() }),
     async run(params: { period: string }, db: Db): Promise<QueryResult> {
       const range = parsePeriod(params.period);
@@ -19,11 +19,25 @@ export const moneyTools: QueryTool[] = [
       if (range) q = q.gte("confirmed_at", `${range.from}T00:00:00Z`).lte("confirmed_at", `${range.to}T23:59:59Z`);
       const { data } = await q.limit(1000);
       const rows = (data ?? []) as any[];
-      const total = rows.reduce((acc, r) => acc + num(r.extracted?.total?.value), 0);
+      // Group by currency — summing PEN and USD together would be meaningless.
+      const byMoneda = new Map<string, { count: number; total: number }>();
+      for (const r of rows) {
+        const moneda = String(r.extracted?.moneda?.value || "PEN").toUpperCase();
+        const acc = byMoneda.get(moneda) ?? { count: 0, total: 0 };
+        acc.count += 1;
+        acc.total += num(r.extracted?.total?.value);
+        byMoneda.set(moneda, acc);
+      }
+      const tableRows = [...byMoneda.entries()]
+        .sort((a, b) => b[1].total - a[1].total)
+        .map(([moneda, { count, total }]) => [moneda, count, Number(total.toFixed(2))]);
+      const summary = rows.length
+        ? `Se facturaron ${tableRows.map(([m, , t]) => `${t} ${m}`).join(" + ")} en ${rows.length} factura(s) confirmada(s) en el periodo.`
+        : "No hubo facturas confirmadas en el periodo.";
       return {
-        columns: ["Facturas confirmadas", "Total (suma de montos)"],
-        rows: [[rows.length, Number(total.toFixed(2))]],
-        summary: `Se facturaron ${Number(total.toFixed(2))} en ${rows.length} factura(s) confirmada(s) en el periodo.`,
+        columns: ["Moneda", "Facturas", "Total"],
+        rows: tableRows.length ? tableRows : [["PEN", 0, 0]],
+        summary,
       };
     },
   },

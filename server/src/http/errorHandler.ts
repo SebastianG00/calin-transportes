@@ -4,11 +4,13 @@ import { DomainError } from "../domain/errors.js";
 import { logger } from "../logger.js";
 
 const FIELD_LABELS: Record<string, string> = {
+  // loads / drivers / units
   whatsapp_phone: "WhatsApp",
   email: "Email",
   name: "Nombre",
   weight_kg: "Peso",
   price: "Precio",
+  currency: "Moneda",
   plate: "Placa",
   capacity_kg: "Capacidad",
   tipo: "Tipo",
@@ -20,6 +22,28 @@ const FIELD_LABELS: Record<string, string> = {
   driver_id: "Conductor",
   unit_id: "Unidad",
   reason: "Motivo",
+  ruc: "RUC",
+  dni: "DNI",
+  contact_name: "Contacto",
+  contact_email: "Email de contacto",
+  licencia_categoria: "Categoría de licencia",
+  licencia_vence: "Vencimiento de licencia",
+  // tasks
+  titulo: "Título",
+  categoria: "Categoría",
+  estado: "Estado",
+  prioridad: "Prioridad",
+  fecha_vencimiento: "Vencimiento",
+  // inventory
+  nombre: "Nombre",
+  unidad_medida: "Unidad de medida",
+  stock_minimo: "Stock mínimo",
+  cantidad: "Cantidad",
+  motivo: "Motivo",
+  // assistant / drafts
+  question: "Pregunta",
+  intent: "Intención",
+  instruction: "Instrucción",
 };
 
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
